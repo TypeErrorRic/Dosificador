@@ -1,0 +1,14 @@
+#Ignorar archivos:
+.pio/
+.vscode/
+test/
+Doxyfile
+platformio.ini
+
+#Ignorar los Avisos de lib que terminen en .md:
+lib/**/*.md 
+!README.md
+
+#Ignorar los Avisos de include que terminen en .md:
+include/*.md
+!README.md
