@@ -33,7 +33,7 @@ void setup()
  */
 void loop()
 {
-  if(CONMUTADOR)
+  if (CONMUTADOR)
     digitalWrite(8, HIGH);
   else
     digitalWrite(8, LOW);
@@ -47,10 +47,15 @@ void loop()
       Estado = 0;
     break;
   case 1: // Revisa si hay un envase en la zona de envasado.
-    if (RECONOCIMIENTO_ENVASE)
-      Estado = 2;
+    if (CONMUTADOR)
+    {
+      if (RECONOCIMIENTO_ENVASE)
+        Estado = 2;
+      else
+        Estado = 3;
+    }
     else
-      Estado = 3;
+      Estado = 0;
     break;
   case 2: // Revisa si se ha quitado el envase de la zona de envasado.
     if (CONMUTADOR)
@@ -85,7 +90,7 @@ void loop()
   case 5: // Revisa si se ha colocado un envase en la zona de envasado.
     if (CONMUTADOR)
     {
-      if(RECONOCIMIENTO_ENVASE)
+      if (RECONOCIMIENTO_ENVASE)
       {
         if (ENVASE_CORRECTO)
         {
@@ -112,9 +117,9 @@ void loop()
     }
     break;
   case 6: // Revisa si el envase no reconocido se ha quitado de la zona de envasado.
-    if(CONMUTADOR)
+    if (CONMUTADOR)
     {
-      if(RECONOCIMIENTO_ENVASE)
+      if (RECONOCIMIENTO_ENVASE)
       {
         // Revisar si el envase se quito. Polling
         Estado = 6;
@@ -163,8 +168,9 @@ void loop()
   default:
     break;
   }
-  delay(1000);
   ecribirLcd(Estado);
+  //Tiempo de ejecución:
+  delay(500);
 }
 
 /**
