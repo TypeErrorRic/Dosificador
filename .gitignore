@@ -12,3 +12,7 @@ lib/**/*.md
 #Ignorar los Avisos de include que terminen en .md:
 include/*.md
 !README.md
+
+#Ignorar archivos que no pertenecen al proyecto:
+*.docx
+*.pdf
