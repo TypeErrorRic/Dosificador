@@ -1,4 +1,4 @@
-#include <Config.h> //Desarrollado por Ricardo Pabón Serna.
+#include <BUILD.h> //Desarrollado por Ricardo Pabón Serna.
 // Archivo de cabecera.
 #include "C:\Users\ricardo\Desktop\Taller_Ing_II\include\Selecion_datos.h"
 

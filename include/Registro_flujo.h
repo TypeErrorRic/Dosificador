@@ -1,33 +1,17 @@
 /**
- * @file Proyecto de Taller de Ingeniería.
+ * @file Memoria.h.
  * @author Ricardo Pabón Serna.(ricardo.pabon@correounivalle.edu.co)
- * @brief Este programa se encarga de describir el flujo de ejecución del programa
- * @version 1.0
- * @date 2023-05-06
+ * @brief Manejo de la memoria EEPROM.
+ * @version 0.1
+ * @date 2023-05-14
  *
- * @copyright Copyright (c) 2022
+ * @copyright Copyright (c) 2023
  */
 
-#ifndef CONFIG_H
-#define CONFIG_H
+#ifndef REGISTRO_FLUJO
+#define REGISTRO_FLUJO
 
-/////////////////////////LIBRERIA CON ARDUINO//////////////////////////////
 #include <Arduino.h>
-#include <Wire.h> 
-#include <LiquidCrystal_I2C.h>
-
-// Librerias creadas:
-#include <Regresion_Cuadratica.h> //Desarrollado Por Ricardo Pabón Serna.
-
-//CONFIGURACIÓN DEL ARDUINO:
-#define VELOCIDA_TX     9600 //Velocidad Baudrate de trasmición.
-#define NFILAS          5 //Número de datos tomados.
-
-/*********************FUNCIONES DE IMPRECIÓN EN LCD **************************/
-//Inicializar LCD
-void setLCD();
-//Escribir en la LCD:
-void ecribirLcd(int estado);
 
 /***************** MANEJO DE BITS SOBRE LOS ESTADOS DE ENTRADA *********************/
 
@@ -142,24 +126,5 @@ inline volatile unsigned char getRegEntrada() {return *REGENTRADAS;}
     } \
 } while (0)
 
-/************ FUNCIONES PARA EL CALCULO DE LA REGRESION CUADRATICA **************/
-
-void initRegresionCuadratica();
-//void initRegistroMemoria();
-void doRegresionCuadratica();
-
-/**
- * @note Para la comprobación de los calculos realizador por el programa <<Regresion_Cuadratica.h>
- *       Debe descomentar lqas funcionalidades de test y Get_Matriz.
- */
-
-/**************** FUNCIONES PARA EL MANEJO DEl FLUJO DEL PROGRAMA *********************/
-
-void RevisionSensoresInit();
-void Revision_variables();
-/**
- * @note Las funciones para el control del flujo de programa está desarrolladas en el
- *       Paradigma de programación orientada a registros.
- */
 
 #endif
