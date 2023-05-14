@@ -11,11 +11,11 @@
 #include <Memoria.h>
 
 //Inicialización de la longitud de la EEPROM
-template<typename T, void (*func_ptr)(T&, classMemoria&, unsigned short&, T)>
+template<typename T, void (*func_ptr)(T&, classMemoria&, unsigned short&, int)>
 const uint16_t Memoria<T, func_ptr>::length = E2END + 1;
 
 //Inicialización de la EEPROM
-template<typename T, void (*func_ptr)(T&, classMemoria&, unsigned short&, T)>
+template<typename T, void (*func_ptr)(T&, classMemoria&, unsigned short&, int)>
 classMemoria Memoria<T, func_ptr>::EEPROM;
 
 //Instancias de la plantilla Memoria creadas:
@@ -24,6 +24,7 @@ Memoria<unsigned long, Sumar<unsigned long>> FACTOR_CELDADCARGA;
 Memoria<float, Sumar<float>> X2;
 Memoria<float, Sumar<float>> X;
 Memoria<float, Sumar<float>> A;
+Memoria<unsigned int, Sumar<unsigned int>> NUM_CICLO_FINAL;
 
 void Escribir_dato(uint8_t dato, unsigned int dirrecion)
 {
@@ -55,7 +56,7 @@ Memoria<float, Array<float>> PESO(true);
 
 void LIMPIAR()
 {
-     for(unsigned short i = 0; i < PESO.size(); i++) {(PESO.Ep()).write(i, 0xff); }
+     for(unsigned short i = 0; i < PESO.size(); i++) {(PESO.Ep()).write(i, 0x00); }
 }
 
 static unsigned short conservar = 0;

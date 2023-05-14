@@ -13,6 +13,7 @@
 
 #include <avr/io.h>
 #include <inttypes.h>
+#include <Arduino.h>
 
 void Escribir_dato(uint8_t dato, unsigned int dirrecion);
 uint8_t Leer_dato(unsigned int adress);
@@ -87,7 +88,7 @@ void size_Escrito(unsigned short& dato, unsigned short aumento);
 unsigned short getConserva();
 
 //Clase para la Manipulación de los datos creados desde classMemoria:
-template<typename Tipo_dato, void (*func_ptr)(Tipo_dato&, classMemoria&, unsigned short&, Tipo_dato)>
+template<typename Tipo_dato, void (*func_ptr)(Tipo_dato&, classMemoria&, unsigned short&, int)>
 class Memoria
 {
     private:
@@ -101,32 +102,38 @@ class Memoria
         //Constructor:
         Memoria(bool array = false) : size_dato(sizeof(Tipo_dato))
         {
-            dirrecion = getConserva();
+            this->dirrecion = getConserva();
             EEPROM.get(dirrecion, dato);
             if(array) size_Escrito(sizeEscrito, size_dato*NUM_ELEMENTOS_ARREGLO);
             else size_Escrito(sizeEscrito, size_dato);
         }
         ~Memoria()                                      {} //Destructor.
         //Operaciones Aplicables:
-        Tipo_dato &operator*() const                    {return dato; } 
+        Tipo_dato operator*() const                     {return dato; } 
         Tipo_dato operator=(Tipo_dato cambio)           {return dato = cambio, dato;}
-        Tipo_dato operator=(const Memoria &dato)        {return dato;}
+        Tipo_dato operator=(const Memoria &dato)        {return **this = *dato;}
+        //Gaurdar Dato:
         void operator++()  const                        {EEPROM.put(dirrecion, dato);}
+        //Regresar al Dato original:
+        void operator--()                               {EEPROM.get(dirrecion, dato);}
         //Capacidad iterativa:
-        void begin()                                    {for(short i = (sizeEscrito + sizeof(Tipo_dato)); i < sizeEscrito; i--) EEPROM.write(i, 0xff);}
+        void begin()                                    {for(short i = (sizeEscrito + sizeof(Tipo_dato)); i < sizeEscrito; i--) EEPROM.write(i, 0x00);}
         pointer &end()  const                           {return length; }
+        //Operaciones basicas de funcionamiento:
+        void operator+=(int suma)                       {if(sizeof(Tipo_dato) != sizeof(char)) dato = dato + suma;}
+        void operator-=(int suma)                       {if(sizeof(Tipo_dato) != sizeof(char)) dato = dato - suma;}
         //Registros Escritos:
         const unsigned short &size() const              {return sizeEscrito;}
         static uint8_t M_DDR(int indx)                  {return EEPROM[indx];} //Se utiliza para obtener los bits del registro.
         static classMemoria &Ep()                       {return EEPROM;}
-        const unsigned short &Dirr()                    {return dirrecion;}
+        const unsigned short &Dirr() const              {return dirrecion;}
         //Funcionalidad para arreglos:
-        void operator[](int indx)                       { func_ptr(dato, EEPROM, dirrecion, indx); }
+        Memoria &operator[](int indx)                   {return func_ptr(dato, EEPROM, dirrecion, indx), *this;}
 };
 
 //Template para manejo de datos normales.
 template<typename T>
-void Sumar(T &valor, classMemoria &param, unsigned short &dirr, T indx)
+void Sumar(T &valor, classMemoria &param, unsigned short &dirr, int indx)
 {
     valor = valor + indx;
 }
@@ -137,14 +144,13 @@ extern Memoria<unsigned long, Sumar<unsigned long>> FACTOR_CELDADCARGA;
 extern Memoria<float, Sumar<float>> X2;
 extern Memoria<float, Sumar<float>> X;
 extern Memoria<float, Sumar<float>> A;
+extern Memoria<unsigned int, Sumar<unsigned int>> NUM_CICLO_FINAL;
 
 //Template para manejo de arrays.
 template<typename T>
-void Array(T &valor, classMemoria &celdas, unsigned short &dirr, T indx)
+void Array(T &valor, classMemoria &celdas, unsigned short &dirr, int indx)
 {
-    int index = static_cast<int>(indx);
-    if(indx < NUM_ELEMENTOS_ARREGLO)
-        dirr = valor + valor*index;
+    dirr = dirr + (sizeof(T) * (indx % NUM_ELEMENTOS_ARREGLO));
     celdas.get(dirr, valor);
 }
 

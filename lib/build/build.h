@@ -20,6 +20,7 @@
 #include <Regresion_Cuadratica.h> //Desarrollado Por Ricardo Pabón Serna.
 #include "../../include/Registro_flujo.h" //Desarrollado por Ricardo Pabón Serna.
 #include <Memoria.h> //Desarrollado por Ricardo Pabón Serna.
+#include <derivada.h> //Desarollado por Ricardo Pabón Serna.
 
 //CONFIGURACIÓN DEL ARDUINO:
 #define VELOCIDA_TX     9600 //Velocidad Baudrate de trasmición.

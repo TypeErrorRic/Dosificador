@@ -150,6 +150,7 @@ void loop()
     }
     else
     {
+      NUM_CICLO_FINAL += 1;
       if (CONMUTADOR)
         Estado = 1;
       else
@@ -172,7 +173,6 @@ void loop()
   //Tiempo de ejecución:
   delay(500);
 }
-
 /**
  * @note Para la comprobación de los calculos realizador por el programa <<Regresion_Cuadratica.h>
  *       Debe descomentar lqas funcionalidades de test y Get_Matriz.
