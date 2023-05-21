@@ -62,8 +62,9 @@ static unsigned long prev = 0;
 // Devuelve el estado de la Tolva dispensadora.
 bool stateTolva()
 {
-	if(getEstado() == 3) prev = 0;
-	//Simulación:
+	if (getEstado() == 3)
+		prev = 0;
+	// Simulación:
 	if (prev > 0ul)
 	{
 		if ((millis() - prev) >= 5000UL)
@@ -76,7 +77,7 @@ bool stateTolva()
 	}
 	else
 	{
-		if(SENSAR_TOLVA)
+		if (SENSAR_TOLVA)
 			return true;
 		else
 			return false;
@@ -109,7 +110,10 @@ bool revisarEnvase(short &Tipo)
 		switch ((char)Serial.read())
 		{
 		case '1':
-			if (RECONOCIMIENTO_ENVASE) {MRECONOCIMIENTO_ENVASE(0);}
+			if (RECONOCIMIENTO_ENVASE)
+			{
+				MRECONOCIMIENTO_ENVASE(0);
+			}
 			else
 				MRECONOCIMIENTO_ENVASE(1) { ; }
 			break;
@@ -117,7 +121,7 @@ bool revisarEnvase(short &Tipo)
 			break;
 		}
 	}
-	//Programa de reconocimiento de tipo:
+	// Programa de reconocimiento de tipo:
 	if (RECONOCIMIENTO_ENVASE)
 	{
 		if (getEstado() == 5)
@@ -154,10 +158,10 @@ bool revisarEnvase(short &Tipo)
 						return true;
 						break;
 					}
-					if(Tipo != 10)
+					if (Tipo != 10)
 					{
 						Serial.print("Tipo: ");
-        		Serial.println(TIPO_ENVASE);
+						Serial.println(TIPO_ENVASE);
 					}
 				}
 		}
@@ -196,7 +200,7 @@ bool revisarLLenado()
 	}
 	else
 	{
-		if(CICLO_LLENADO)
+		if (CICLO_LLENADO)
 			return true;
 		else
 			return false;
