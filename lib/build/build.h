@@ -11,31 +11,14 @@
 #ifndef BUILD_H
 #define BUILD_H
 
-/////////////////////////LIBRERIA CON ARDUINO//////////////////////////////
-#include <Arduino.h>
-#include <Wire.h> 
-#include <LiquidCrystal_I2C.h>
-
 // Librerias creadas:
+#include <Config.h> //Desarrollado por Ricardo Pabón Serna.
 #include <Regresion_Cuadratica.h> //Desarrollado Por Ricardo Pabón Serna.
-#include "../../include/Registro_flujo.h" //Desarrollado por Ricardo Pabón Serna.
-#include <Memoria.h> //Desarrollado por Ricardo Pabón Serna.
 #include <derivada.h> //Desarollado por Ricardo Pabón Serna.
-
-//CONFIGURACIÓN DEL ARDUINO:
-#define VELOCIDA_TX     9600 //Velocidad Baudrate de trasmición.
-#define NFILAS          5 //Número de datos tomados.
-
-/*********************FUNCIONES DE IMPRECIÓN EN LCD **************************/
-//Inicializar LCD
-void setLCD();
-//Escribir en la LCD:
-void ecribirLcd(int estado);
 
 /************ FUNCIONES PARA EL CALCULO DE LA REGRESION CUADRATICA **************/
 
 void initRegresionCuadratica();
-//void initRegistroMemoria();
 void doRegresionCuadratica();
 
 /**
@@ -43,13 +26,26 @@ void doRegresionCuadratica();
  *       Debe descomentar lqas funcionalidades de test y Get_Matriz.
  */
 
-/**************** FUNCIONES PARA EL MANEJO DEl FLUJO DEL PROGRAMA *********************/
+/***************** FUNCIONES PARA EL CALCULO DE LA DERIVADA *********************/
 
-void RevisionSensoresInit();
-void Revision_variables();
-/**
- * @note Las funciones para el control del flujo de programa está desarrolladas en el
- *       Paradigma de programación orientada a registros.
- */
+void doDerivada(); //Realizar la derivada.
+
+/***************** FUNCIONES PARA EL MANEJO DEL DISPENSADOR *********************/
+
+bool stateTolva(); //Devuelve el estado de la Tolva dispensadora.
+void fillTolva(); //Activa la función de llenado de la Tolva dispensadora.
+void offTolva(); //Dectiene la Función de llenado de la Tolva dispensadora.
+
+/********************* FUNCIONES DEl SISTEMA DE ENVASADO ************************/
+
+bool revisarEnvase(short &Tipo); //Función que permite conocer el tipo de envase.
+void llenandoEnvase(); //Activa el llenado del envase.
+bool revisarLLenado();  //Verfica el llenado del envase.
+float stopLllenadoEnvase(); //Detiene el llenado del envase.
+
+/********************* FUNCIONES PARA SISTEMA DE ALERTA ************************/
+
+void initAlarma(); //Inizialiar el sistema de Alarma
+void alarma(short type, bool state); //Activa la alarma correspondiente al evento que suceda.
 
 #endif

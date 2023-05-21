@@ -53,6 +53,7 @@ uint8_t Leer_dato(unsigned int adress)
 }
 
 Memoria<float, Array<float>> PESO(true);
+Memoria<unsigned short, Sumar<unsigned short>> VARIABLE_REST;
 
 void LIMPIAR()
 {

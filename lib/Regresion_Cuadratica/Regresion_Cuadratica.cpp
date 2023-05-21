@@ -224,7 +224,6 @@ void Regresion_Cuadratica::Test()
 void Regresion_Cuadratica::reset()
 {
     Realizar = true;
-    Serial.println("Inicialización de Matriz Correcto.");
 }
 
 

@@ -8,23 +8,23 @@
  * @copyright Copyright (c) 2022
  */
 
-#include <build.h>
-
-int Estado = 0;
+#include <Build.h>
 
 /**
  * @brief Función que se encarga de configurar los parametros inciales de las funciones.
  */
 void setup()
 {
-  pinMode(PORTCONMUT, INPUT); // Pin del conmutador.
-  pinMode(8, OUTPUT);
-  initRegresionCuadratica();
   // Inicializar trasmición:
   Serial.begin(VELOCIDA_TX);
   setLCD();
-  // Revisar sensores:
-  RevisionSensoresInit();
+  //Configuracion Base del Sistema:
+  pinMode(PORTCONMUT, INPUT); // Pin del conmutador.
+  RevisionSensoresInit(); // Revisar sensores.
+  pinMode(LED_CONMUTADOR, OUTPUT); //Pin verificación LCD.
+  initRegresionCuadratica();
+  initAlarma();
+  //Mensaje de finalización de configuración:
   Serial.println("Listo");
 }
 
@@ -33,146 +33,25 @@ void setup()
  */
 void loop()
 {
-  if (CONMUTADOR)
-    digitalWrite(8, HIGH);
-  else
-    digitalWrite(8, LOW);
-  Revision_variables();
-  switch (Estado)
+  switch (Modo_Configuracion())
   {
-  case 0: // Revisa si el conmutador está encendido.
-    if (CONMUTADOR)
-      Estado = 1;
-    else
-      Estado = 0;
+  case 0:
+    Serial.println("Flujo del diagrama");
+    while (1)
+      flujo_ejecucion_programa(stateTolva, fillTolva, offTolva, revisarEnvase, 
+        revisarLLenado, llenandoEnvase, stopLllenadoEnvase, alarma);
     break;
-  case 1: // Revisa si hay un envase en la zona de envasado.
-    if (CONMUTADOR)
-    {
-      if (RECONOCIMIENTO_ENVASE)
-        Estado = 2;
-      else
-        Estado = 3;
-    }
-    else
-      Estado = 0;
+  case 1:
+    Serial.println("Usar Derivada.");
     break;
-  case 2: // Revisa si se ha quitado el envase de la zona de envasado.
-    if (CONMUTADOR)
-    {
-      if (RECONOCIMIENTO_ENVASE)
-      {
-        // Revisar Envase polling.
-        Estado = 2;
-      }
-      else
-        Estado = 3;
-    }
-    else
-      Estado = 0;
-    break;
-  case 3: // Revisa si la tolva dosificadora tiene suficiente material para realizar un llenado.
-    if (SENSAR_TOLVA)
-      Estado = 5;
-    else
-      Estado = 4;
-    break;
-  case 4: // Revisa si la tolva dosificadora ya se ha llenado.
-    Serial.println("LLenando...");
-    while (!SENSAR_TOLVA)
-    {
-      Revision_variables();
-      delay(1000);
-      // Revisar sensor de la tolva por polling.
-    }
-    Estado = 5;
-    break;
-  case 5: // Revisa si se ha colocado un envase en la zona de envasado.
-    if (CONMUTADOR)
-    {
-      if (RECONOCIMIENTO_ENVASE)
-      {
-        if (ENVASE_CORRECTO)
-        {
-          if (CICLO_LLENADO)
-            Estado = 8;
-          else
-          {
-            Estado = 7;
-          }
-        }
-        else
-        {
-          Estado = 6;
-        }
-      }
-      else
-      {
-        Estado = 5;
-      }
-    }
-    else
-    {
-      Estado = 0;
-    }
-    break;
-  case 6: // Revisa si el envase no reconocido se ha quitado de la zona de envasado.
-    if (CONMUTADOR)
-    {
-      if (RECONOCIMIENTO_ENVASE)
-      {
-        // Revisar si el envase se quito. Polling
-        Estado = 6;
-      }
-      else
-        Estado = 5;
-    }
-    else
-      Estado = 0;
-    break;
-  case 7: // Revisa si el envase se ha llenado correctamente.
-    if (!CICLO_LLENADO)
-    {
-      // Ya se lleno.
-      if (RECONOCIMIENTO_ENVASE)
-      {
-        Estado = 7;
-        Serial.print("Tipo: ");
-        Serial.println(TIPO_ENVASE);
-      }
-      else
-      {
-        if (CONMUTADOR)
-          Estado = 3;
-        else
-          Estado = 0;
-      }
-    }
-    else
-    {
-      NUM_CICLO_FINAL += 1;
-      if (CONMUTADOR)
-        Estado = 1;
-      else
-        Estado = 0;
-    }
-    break;
-  case 8: // Revisa si se ha quitado el envase reconocido pero con material del ciclo de envasado.
-    if (CONMUTADOR)
-    {
-      if (RECONOCIMIENTO_ENVASE)
-        Estado = 8;
-      else
-        Estado = 5;
-    }
+  case 2:
+    Serial.println("Memoria.");
     break;
   default:
     break;
   }
-  ecribirLcd(Estado);
-  //Tiempo de ejecución:
-  delay(500);
 }
+
 /**
  * @note Para la comprobación de los calculos realizador por el programa <<Regresion_Cuadratica.h>
  *       Debe descomentar lqas funcionalidades de test y Get_Matriz.

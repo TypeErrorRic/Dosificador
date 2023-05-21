@@ -1,22 +1,29 @@
 /**
- * @file Memoria.h.
+ * @file Config.h
  * @author Ricardo Pabón Serna.(ricardo.pabon@correounivalle.edu.co)
- * @brief Manejo de la memoria EEPROM.
+ * @brief Contiene las configuraciones para el funcionamiento del sistema.
  * @version 0.1
  * @date 2023-05-14
  *
  * @copyright Copyright (c) 2023
  */
 
-#ifndef REGISTRO_FLUJO
-#define REGISTRO_FLUJO
+#ifndef  CONFIG_H
+#define  CONFIG_H
 
 #include <Arduino.h>
 
 /***************** MANEJO DE BITS SOBRE LOS ESTADOS DE ENTRADA *********************/
 
-#define PORTCONMUT      7 //Pin reservado exclusivamente para el conmutador.
-#define CONMUTADOR      ((*((volatile uint8_t*)_SFR_MEM_ADDR(PIND)) & (1 << PORTCONMUT)) >> PORTCONMUT)
+#define PORTCONMUT      8 //Pin reservado exclusivamente para el conmutador en Arduino.
+#define PIN_AVR         0 //Pin reservado exclusivamente para el conmutador.
+#define CONMUTADOR      ((*((volatile uint8_t*)_SFR_MEM_ADDR(PINB)) & (1 << PIN_AVR)) >> PIN_AVR)
+
+/**
+* @note La conexión del conmutador está hecha en pull_down
+*/
+
+#define LED_CONMUTADOR  9 //Pin resevado para mostrar el estado del Conmutador.
 
 /*************************** REGISTRO DE ENTRADA ***********************************/
 typedef struct
@@ -104,6 +111,7 @@ inline int tipoEnvase()
 inline volatile unsigned char getRegEntrada() {return *REGENTRADAS;} 
 
 #define MTIPO_ENVASE(type) do { \
+    MENVASE_CORRECTO(1); \
     switch (type) { \
         case 0: \
             MODIFICAR_1(0); \
@@ -122,9 +130,61 @@ inline volatile unsigned char getRegEntrada() {return *REGENTRADAS;}
             MODIFICAR_0(1); \
             break; \
         default: \
+            MODIFICAR_1(0); \
+            MODIFICAR_0(0); \
+            MENVASE_CORRECTO(0); \
             break; \
     } \
 } while (0)
 
+/////////////////////////LIBRERIA CON ARDUINO//////////////////////////////
+#include <Arduino.h>
+#include <LiquidCrystal.h>
+
+//CONFIGURACIÓN DEL ARDUINO:
+#define VELOCIDA_TX     9600 //Velocidad Baudrate de trasmición.
+#define NFILAS          5 //Número de datos tomados.
+
+/*********************FUNCIONES DE IMPRECIÓN EN LCD **************************/
+//Inicializar LCD
+void setLCD();
+
+//Obtener LCD.
+LiquidCrystal &getLcd();
+
+//Escribir en la LCD:
+template<typename T> void escribirLcd(T estado, short fila, short columna, bool limpiar = false)
+{
+    LiquidCrystal lcd = getLcd();
+    if(limpiar)lcd.clear();
+    lcd.setCursor(fila,columna);
+    lcd.print(estado);
+}
+
+/*************FUNCIONES PARA LA SELECCIÓN DEL MODO DE FUNCIONAMIENTO*********/
+short &Modo_Configuracion();
+
+/**FUNCIONES PARA EL MANEJO DEl FLUJO DEL PROGRAMA Y EJECUCIÓN DEL SISTEMA**/
+
+#define DELAY_EJE       500
+
+// Función de flujo de control:
+void flujo_ejecucion_programa(bool(*revisarTolva)(void), void(*llenarTolva)(void), void(*ApagarTolva)(void), 
+    bool(*revisarEnvase)(short &), bool(*llenado)(void), void(*doLlenado)(void),
+    float (*stopLlenado)(void), void(*alerta)(short type, bool state));
+
+void RevisionSensoresInit();
+
+void Revision_variables(bool(*revisarTolva)(void), void(*llenarTolva)(void), 
+    bool(*revisarEnvase)(short &), bool(*llenado)(void), void(*alerta)(short type, bool state));
+
+const short &getEstado();
+
+/**
+* @note Las funciones para el control del flujo de programa está desarrolladas en el
+*       Paradigma de programación orientada a registros.
+*/
+
+#define ALARMA          10
 
 #endif

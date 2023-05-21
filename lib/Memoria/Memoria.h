@@ -120,8 +120,8 @@ class Memoria
         void begin()                                    {for(short i = (sizeEscrito + sizeof(Tipo_dato)); i < sizeEscrito; i--) EEPROM.write(i, 0x00);}
         pointer &end()  const                           {return length; }
         //Operaciones basicas de funcionamiento:
-        void operator+=(int suma)                       {if(sizeof(Tipo_dato) != sizeof(char)) dato = dato + suma;}
-        void operator-=(int suma)                       {if(sizeof(Tipo_dato) != sizeof(char)) dato = dato - suma;}
+        void operator+=(int suma)                       {if(sizeof(Tipo_dato) != sizeof(short)) dato = dato + suma;}
+        void operator-=(int suma)                       {if(sizeof(Tipo_dato) != sizeof(short)) dato = dato - suma;}
         //Registros Escritos:
         const unsigned short &size() const              {return sizeEscrito;}
         static uint8_t M_DDR(int indx)                  {return EEPROM[indx];} //Se utiliza para obtener los bits del registro.
@@ -135,7 +135,8 @@ class Memoria
 template<typename T>
 void Sumar(T &valor, classMemoria &param, unsigned short &dirr, int indx)
 {
-    valor = valor + indx;
+    if(sizeof(T) != sizeof(short)) valor = valor + indx;
+    else if(valor == 0) {valor = 1;} else {valor = 0;}
 }
 
 //Valores de las variables:
@@ -156,6 +157,9 @@ void Array(T &valor, classMemoria &celdas, unsigned short &dirr, int indx)
 
 //Array de valores para peso:
 extern Memoria<float, Array<float>> PESO;
+
+//Conmutación de valor;
+extern Memoria<unsigned short, Sumar<unsigned short>> VARIABLE_REST;
 
 void LIMPIAR();
 
