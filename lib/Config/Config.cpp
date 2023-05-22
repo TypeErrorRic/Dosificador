@@ -13,6 +13,7 @@ void setLCD()
 }
 static void escribirEstado(short estado)
 {
+  lcd.clear();
   lcd.setCursor(0,0);
   lcd.print("Estado:");
   lcd.print(estado);
@@ -24,17 +25,20 @@ LiquidCrystal &getLcd()
 }
 
 /********************* IMPLEMENTACIÓN DE MODO OPERACIÓN **************************/
-static short Modo_operacion = 0;
-static unsigned long timer = 0;
-static short count = 0;
+static unsigned long timer = 0; //Compartida con Memoria.
+static short count = 0; //Compartida con Memoria.
+static bool crash = true; //Compartida con Memoria.
+
+#define DELAY_MESSAGE         3000UL
+#define TIEMPO_ESPERA         5000UL
 
 //Función de inicialización de los modos de operación del sistema:
 static bool Modo_seleccion()
 {
+    if(*VARIABLE_REST) return true;
     unsigned int time = millis();
-    short count = 0;
     short aux = 1;
-    while (millis() - time <= 5000UL)
+    while (millis() - time <= TIEMPO_ESPERA)
     {
         if (CONMUTADOR == aux)
         {
@@ -43,42 +47,49 @@ static bool Modo_seleccion()
         }
         if (count >= 6)
         {
+          count = 0;
           timer = millis();
           return true;
         }
     }
+    count = 0;
+    timer = millis() - DELAY_MESSAGE;
     return false;
 }
 
 //Función de inicialización de los modos de operación del sistema:
-short &Modo_Configuracion()
+short Modo_Configuracion()
 {
-    if (Modo_seleccion())
+  if (Modo_seleccion())
+  {
+    ++(VARIABLE_REST = 1);
+    while(crash)
     {
       switch (count)
       {
       case 0:
-        if((millis() - timer) > 1000)
+        if ((millis() - timer) > DELAY_MESSAGE)
         {
           escribirLcd<String>("Modo de", 0, 0, true);
-          escribirLcd<String>("Operacion.", 1,0);
+          escribirLcd<String>("Operacion.", 1, 0);
           timer = millis();
           count++;
         }
         break;
       case 1:
-        if((millis() - timer) > 1000)
+        if ((millis() - timer) > DELAY_MESSAGE)
         {
-          escribirLcd<String>("1.Done", 0, 0, true);
-          escribirLcd<String>("2.Regresión", 1, 0);
+          escribirLcd<String>("1. Done", 0, 0, true);
+          escribirLcd<String>("2. Regresion", 1, 0);
           timer = millis();
           count++;
         }
         break;
       case 2:
-        if((millis() - timer) > 1000)
+        if ((millis() - timer) > DELAY_MESSAGE)
         {
           escribirLcd<String>("3. Memoria.", 0, 0, true);
+          escribirLcd<String>("4. Derivada.", 1, 0);
           timer = millis();
           count++;
         }
@@ -86,31 +97,144 @@ short &Modo_Configuracion()
       default:
         count = 0;
         break;
-      }
-      while ((Serial.available() > 0) && (Modo_operacion == 0))
+      }  
+      if((Serial.available() > 0) && crash)
       {
         switch ((char)Serial.read())
         {
         case '1':
-          Modo_operacion = 0;
+          MODO_OPERACION = 0;
+          crash = false;
           break;
         case '2':
-          Modo_operacion = 1;
+          MODO_OPERACION = 1;
+          crash = false;
           break;
         case '3':
-          Modo_operacion = 2;
+          MODO_OPERACION = 2;
+          crash = false;
+          break;
+        case '4':
+          MODO_OPERACION = 3;
+          crash = false;
           break;
         default:
           break;
         }
-      }
+      }      
     }
-    else
-        Modo_operacion = 0;
-    return Modo_operacion;
+    if(crash == false)
+    {
+      ++MODO_OPERACION;
+      ++(VARIABLE_REST = 0); 
+      count = 0; 
+    } 
+  }
+  crash = false;
+  timer = millis();
+  return *MODO_OPERACION;
 }
 
-/*********** IMPLEMENTACIÓN DE FUNCIONES PARA EL MANEJO DEL FLUJO DEL PROGRAMA ****************/
+/**************** IMPLEMENTACIÓN DE FUNCIONES PARA EL MANEJO DE LA MEMORIA ****************/
+
+//Permite obtener todos los datos Guardados en la EPPROM:
+void Imprimir_dato()
+{
+  if(*NUM_CICLO_FINAL == 5) 
+      Serial.println("|...ACTUAL...|");
+  for(unsigned short i = *NUM_CICLO_FINAL; i > (*NUM_CICLO_FINAL-5); i--)
+  {
+    Serial.print("Ciclo: ");
+    Serial.println((*NUM_CICLO_FINAL - i) + 1);
+    Serial.println("# Envase: ");
+    for(unsigned int j = 0; j < NUM_ELEMENTOS_ARREGLO(1); j++) 
+    {
+      Serial.print(j+1);
+      Serial.print(". ");
+      Serial.println(*((NUM_ENVASES[(*NUM_CICLO_FINAL - i)])[j]));
+    }
+    Serial.print("Peso Total: ");
+    Serial.println(*(PESO[*NUM_CICLO_FINAL - i]));
+    if((((*NUM_CICLO_FINAL - i)) == ((*NUM_CICLO_FINAL- 1) % NUM_ELEMENTOS_ARREGLO(0))) && !(*NUM_CICLO_FINAL == 5)) 
+      Serial.println("|...ACTUAL...|");
+  }
+  Serial.print("F. Celdad: ");
+  Serial.println(*FACTOR_CELDADCARGA);
+  Serial.print("[X2, X, A]=");
+  Serial.print(*X2);
+  Serial.print(',');
+  Serial.print(*X);
+  Serial.print(',');
+  Serial.println(*A);
+  Serial.print("# ciclos: ");
+  Serial.println(*NUM_CICLO_FINAL - 5);
+}
+//Función para Visualización de datos alamancenados en la EEPROM.
+void EjecucionMemoria()
+{
+  while(!crash)
+  {
+    switch (count)
+    {
+    case 0:
+      if ((millis() - timer) > DELAY_MESSAGE)
+      {
+        escribirLcd<String>("Operacion", 0, 0, true);
+        escribirLcd<String>("Memoria.", 1, 0);
+        timer = millis();
+        count++;
+      }
+      break;
+    case 1:
+      if ((millis() - timer) > DELAY_MESSAGE)
+      {
+        escribirLcd<String>("1. Datos", 0, 0, true);
+        escribirLcd<String>("2. Impresion T", 1, 0);
+        timer = millis();
+        count++;
+      }
+      break;
+    case 2:
+      if ((millis() - timer) > DELAY_MESSAGE)
+      {
+        escribirLcd<String>("3. Limpiar.", 0, 0, true);
+        escribirLcd<String>("4. Salir.", 1, 0);
+        timer = millis();
+        count++;
+      }
+      break;
+    default:
+      count = 0;
+      break;
+    }
+    if((Serial.available() > 0) && !crash)
+    {
+      switch ((char)Serial.read())
+      {
+      case '1':
+        Imprimir_dato();
+        break;
+      case '2':
+        for(unsigned short i=0; i< MODO_OPERACION.size(); i++) 
+          {Serial.print(i); Serial.print(". "); Serial.println(MODO_OPERACION.M_DDR(i));}
+        break;
+      case '3':
+        LIMPIAR();
+        VARIABLE_REST = 1;
+        crash = true;
+        break;
+      case '4':
+        VARIABLE_REST = 1;
+        crash = true;
+        break;
+      default:
+        break;
+      }
+    }
+  }
+}
+
+/*********** IMPLEMENTACIÓN DE FUNCIONES PARA EL MANEJO DEL FLUJO DEL PROGRAMA ************/
 
 static short Estado = 0; // Número de estados.
 static short tipo = 0;   // Tipo de Envase.
@@ -129,7 +253,13 @@ void Revision_variables(bool(*revisarTolva)(void), void(*llenarTolva)(void),
   switch (Estado)
   {
   case 0:
-    alerta(4, false);
+    if(crash == false)
+    {
+      alerta(4, false);
+      ++(PESO[*NUM_CICLO_FINAL] = 0);
+      NUM_ENVASES.Begin(*NUM_CICLO_FINAL);
+      crash = true;
+    }
     break;
   case 1: // Revisa si hay un envase en la zona de envasado.
     if(revisarEnvase(tipo)) {MRECONOCIMIENTO_ENVASE(1); MCICLO_LLENADO(0);}
@@ -258,11 +388,17 @@ void flujo_ejecucion_programa(bool(*revisarTolva)(void), void(*llenarTolva)(void
     }
     else
     {
-      NUM_CICLO_FINAL += 1;
-      PESO[*NUM_CICLO_FINAL] = stopLlenado();
+      ++((PESO[*NUM_CICLO_FINAL]) += stopLlenado());
+      if(TIPO_ENVASE != 0) 
+        {((NUM_ENVASES[*NUM_CICLO_FINAL])[TIPO_ENVASE - 1]) += 1;}
       MSENSORTOLVA(0);
       if (CONMUTADOR) Estado = 1;
-      else Estado = 0;
+      else
+      { 
+        Estado = 0;
+        NUM_CICLO_FINAL += 1;
+        crash = false;
+      }
     }
     break;
   case 8: // Alerta de reconocimiento de envase ya dosificado.
@@ -286,4 +422,9 @@ void flujo_ejecucion_programa(bool(*revisarTolva)(void), void(*llenarTolva)(void
 const short &getEstado()
 {
   return Estado;
+}
+
+const short getModoOperacion()
+{
+  return *MODO_OPERACION;
 }

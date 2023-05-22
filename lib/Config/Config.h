@@ -153,16 +153,16 @@ void setLCD();
 LiquidCrystal &getLcd();
 
 //Escribir en la LCD:
-template<typename T> void escribirLcd(T estado, short fila, short columna, bool limpiar = false)
+template<typename T> void escribirLcd(const T estado, short fila, short columna, bool limpiar = false)
 {
     LiquidCrystal lcd = getLcd();
     if(limpiar)lcd.clear();
-    lcd.setCursor(fila,columna);
+    lcd.setCursor(columna,fila);
     lcd.print(estado);
 }
 
 /*************FUNCIONES PARA LA SELECCIÓN DEL MODO DE FUNCIONAMIENTO*********/
-short &Modo_Configuracion();
+short Modo_Configuracion();
 
 /**FUNCIONES PARA EL MANEJO DEl FLUJO DEL PROGRAMA Y EJECUCIÓN DEL SISTEMA**/
 
@@ -173,18 +173,26 @@ void flujo_ejecucion_programa(bool(*revisarTolva)(void), void(*llenarTolva)(void
     bool(*revisarEnvase)(short &), bool(*llenado)(void), void(*doLlenado)(void),
     float (*stopLlenado)(void), void(*alerta)(short type, bool state));
 
+//Función de Inicialización de registro y Memoria:
 void RevisionSensoresInit();
 
+//Función con las funciones de verificación de sensores:
 void Revision_variables(bool(*revisarTolva)(void), void(*llenarTolva)(void), 
     bool(*revisarEnvase)(short &), bool(*llenado)(void), void(*alerta)(short type, bool state));
 
+//Getter: retorna Estado:
 const short &getEstado();
+const short getModoOperacion();
+
+//Función del manejo de Memoria:
+void Imprimir_dato();
+void EjecucionMemoria();
 
 /**
 * @note Las funciones para el control del flujo de programa está desarrolladas en el
 *       Paradigma de programación orientada a registros.
 */
 
-#define ALARMA          10
+#define ALARMA          10 //Pin de la Alarma.
 
 #endif

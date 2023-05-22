@@ -7,9 +7,8 @@
  *
  * @copyright Copyright (c) 2022
  */
-
 #include <Build.h>
-
+#include <Memoria.h>
 /**
  * @brief Función que se encarga de configurar los parametros inciales de las funciones.
  */
@@ -24,7 +23,7 @@ void setup()
   pinMode(LED_CONMUTADOR, OUTPUT); //Pin verificación LCD.
   initRegresionCuadratica();
   initAlarma();
-  //Mensaje de finalización de configuración:
+  //Mensaje de finalización de configuración.
   Serial.println("Listo");
 }
 
@@ -42,10 +41,13 @@ void loop()
         revisarLLenado, llenandoEnvase, stopLllenadoEnvase, alarma);
     break;
   case 1:
-    Serial.println("Usar Derivada.");
+    Serial.println("Usar Regresion.");
     break;
   case 2:
-    Serial.println("Memoria.");
+    EjecucionMemoria();
+    break;
+  case 3:
+    Serial.println("Usar Derivada.");
     break;
   default:
     break;
