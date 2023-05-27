@@ -23,8 +23,6 @@
 * @note La conexión del conmutador está hecha en pull_down
 */
 
-#define LED_CONMUTADOR  9 //Pin resevado para mostrar el estado del Conmutador.
-
 /*************************** REGISTRO DE ENTRADA ***********************************/
 typedef struct
 {
@@ -192,7 +190,5 @@ void EjecucionMemoria();
 * @note Las funciones para el control del flujo de programa está desarrolladas en el
 *       Paradigma de programación orientada a registros.
 */
-
-#define ALARMA          10 //Pin de la Alarma.
 
 #endif

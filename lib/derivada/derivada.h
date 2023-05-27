@@ -1,6 +1,7 @@
 #ifndef DERIVADA_H
 #define DERIVADA_H
 
-float Derivada(float x, float y, unsigned int time);
+//Realización de la derivada:
+float Derivada(float x, float (*y)(void), unsigned int time); 
 
 #endif

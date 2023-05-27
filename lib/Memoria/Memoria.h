@@ -86,7 +86,8 @@ struct classMemoria
     }
 };
 
-#define NUM_ELEMENTOS_ARREGLO(value) ((value) == 0 ? 5 : ((value) == 1 ? 3 : 0)) //El parametro 5 es fijo. NO MODIFICABLE
+#define NUM_ELEMENTOS_ARREGLO(value) ((value) == 0 ? 5 : ((value) == 1 ? 3 : 0)) //NO MODIFICABLE. Devuelve el valor de filas y columnas de la matriz.
+//El parametro 5 es fijo.
 
 void size_Escrito(unsigned short &dato, unsigned short aumento);
 unsigned short getConserva();
@@ -161,9 +162,9 @@ int Sumar(T &valor, classMemoria &param, const unsigned short &dirr, int indx)
 // Valores de las variables:
 extern Memoria<unsigned long, Sumar<unsigned long>> FACTOR_CELDADCARGA; // Celdad de Carga.
 // Regresión Cuadratica:
-extern Memoria<float, Sumar<float>> X2;
-extern Memoria<float, Sumar<float>> X;
-extern Memoria<float, Sumar<float>> A;
+extern Memoria<float, Sumar<float>> X2; //Termino de segundo grado.
+extern Memoria<float, Sumar<float>> X; //Termino de primer grado.
+extern Memoria<float, Sumar<float>> A; //Termino independiente.
 
 // Template para manejo de arrays.
 template <typename T>

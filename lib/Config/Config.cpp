@@ -17,6 +17,15 @@ static void escribirEstado(short estado)
   lcd.setCursor(0,0);
   lcd.print("Estado:");
   lcd.print(estado);
+  lcd.setCursor(11, 0);
+  lcd.print("E1:");
+  lcd.print(*(NUM_ENVASES[*NUM_CICLO_FINAL])[0]);
+  lcd.setCursor(0, 1);
+  lcd.print("E2:");
+  lcd.print(*(NUM_ENVASES[*NUM_CICLO_FINAL])[1]);
+  lcd.setCursor(11,1);
+  lcd.print("E3:");
+  lcd.print(*(NUM_ENVASES[*NUM_CICLO_FINAL])[2]);
 }
 
 LiquidCrystal &getLcd()
@@ -253,17 +262,17 @@ void Revision_variables(bool(*revisarTolva)(void), void(*llenarTolva)(void),
   switch (Estado)
   {
   case 0:
+    alerta(0, false);
     if(crash == false)
     {
-      alerta(4, false);
       ++(PESO[*NUM_CICLO_FINAL] = 0);
       NUM_ENVASES.Begin(*NUM_CICLO_FINAL);
       crash = true;
     }
     break;
   case 1: // Revisa si hay un envase en la zona de envasado.
-    if(revisarEnvase(tipo)) {MRECONOCIMIENTO_ENVASE(1); MCICLO_LLENADO(0);}
-    else MRECONOCIMIENTO_ENVASE(0) {;}
+    if(revisarEnvase(tipo)) {MRECONOCIMIENTO_ENVASE(1);}
+    else {MRECONOCIMIENTO_ENVASE(0); MCICLO_LLENADO(0);}
     break;
   case 2: // Revisa si se ha quitado el envase de la zona de envasado.
     if(!revisarEnvase(tipo)) {MRECONOCIMIENTO_ENVASE(0); MCICLO_LLENADO(0);}
@@ -300,13 +309,6 @@ void Revision_variables(bool(*revisarTolva)(void), void(*llenarTolva)(void),
   }
 }
 
-//Función para comprobar el estado del conmutador:
-static void stateConmutador()
-{
-  if (CONMUTADOR) digitalWrite(LED_CONMUTADOR, HIGH);
-  else digitalWrite(LED_CONMUTADOR, LOW);
-}
-
 // Flujo de Ejcución del sistema.
 void flujo_ejecucion_programa(bool(*revisarTolva)(void), void(*llenarTolva)(void), void(*ApagarTolva)(void), 
                               bool(*revisarEnvase)(short &), bool(*llenado)(void), void(*doLlenado)(void),
@@ -314,7 +316,6 @@ void flujo_ejecucion_programa(bool(*revisarTolva)(void), void(*llenarTolva)(void
 {
   //Revision de todos los sensores:
   Revision_variables(revisarTolva, llenarTolva, revisarEnvase, llenado, alerta);
-  stateConmutador(); //Revisa el estado del Conmutador.
   //Flujo del programa:
   switch (Estado)
   {
@@ -343,7 +344,7 @@ void flujo_ejecucion_programa(bool(*revisarTolva)(void), void(*llenarTolva)(void
     else Estado = 4;
     break;
   case 4: // Encender Alimentador
-    while (revisarTolva()) {stateConmutador();}// Revisar sensor de la tolva por polling.
+    while (!revisarTolva()); // Revisar sensor de la tolva por polling.
     MSENSORTOLVA(1);// Se ha llenado.
     ApagarTolva(); // Apagar_Dispensador.
     Estado = 5;
@@ -388,15 +389,15 @@ void flujo_ejecucion_programa(bool(*revisarTolva)(void), void(*llenarTolva)(void
     }
     else
     {
-      ++((PESO[*NUM_CICLO_FINAL]) += stopLlenado());
+      ++((PESO[*NUM_CICLO_FINAL]) += stopLlenado()); //Guarda el Peso del llenado.
       if(TIPO_ENVASE != 0) 
-        {((NUM_ENVASES[*NUM_CICLO_FINAL])[TIPO_ENVASE - 1]) += 1;}
-      MSENSORTOLVA(0);
+        {((NUM_ENVASES[*NUM_CICLO_FINAL])[TIPO_ENVASE - 1]) += 1;} //Guarda el número de envases.
+      MSENSORTOLVA(0); //Se toma como vacia la tolva después del ciclo de llenado.
       if (CONMUTADOR) Estado = 1;
       else
       { 
         Estado = 0;
-        NUM_CICLO_FINAL += 1;
+        NUM_CICLO_FINAL += 1; //Prepara el siguiente ciclo de llenado del siguiente día.
         crash = false;
       }
     }

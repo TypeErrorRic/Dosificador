@@ -8,7 +8,8 @@
  * @copyright Copyright (c) 2022
  */
 #include <Build.h>
-#include <Memoria.h>
+
+
 /**
  * @brief Función que se encarga de configurar los parametros inciales de las funciones.
  */
@@ -18,9 +19,13 @@ void setup()
   Serial.begin(VELOCIDA_TX);
   setLCD();
   //Configuracion Base del Sistema:
+  //Inicialización de pines:
   pinMode(PORTCONMUT, INPUT); // Pin del conmutador.
+  pinMode(PIN_ENVASADO, INPUT); //Pin del sistema de envasado.
+  pinMode(PIN_SENSOR_TOLVA, INPUT); //Pin del sistema de envasado.
+  pinMode(PIN_CICLO_LLENADO, INPUT); //Pin del sistema de ciclo de envasado.
+  //Inicialización de funciones
   RevisionSensoresInit(); // Revisar sensores.
-  pinMode(LED_CONMUTADOR, OUTPUT); //Pin verificación LCD.
   initRegresionCuadratica();
   initAlarma();
   //Mensaje de finalización de configuración.
@@ -35,19 +40,20 @@ void loop()
   switch (Modo_Configuracion())
   {
   case 0:
-    Serial.println("Flujo del diagrama");
     while (1)
       flujo_ejecucion_programa(stateTolva, fillTolva, offTolva, revisarEnvase, 
         revisarLLenado, llenandoEnvase, stopLllenadoEnvase, alarma);
     break;
   case 1:
-    Serial.println("Usar Regresion.");
+    escribirLcd<String>("Realizando", 0, 0, true);
+    escribirLcd<String>("Reg Cuadratica.", 1, 0);
+    doRegresionCuadratica();
     break;
   case 2:
     EjecucionMemoria();
     break;
   case 3:
-    Serial.println("Usar Derivada.");
+    doDerivada();
     break;
   default:
     break;
@@ -55,7 +61,9 @@ void loop()
 }
 
 /**
- * @note Para la comprobación de los calculos realizador por el programa <<Regresion_Cuadratica.h>
- *       Debe descomentar lqas funcionalidades de test y Get_Matriz.
+ * @note Implemenar visualización de derivada y Regresión.
+*/
+
+/**
  * @attention Cualquier inquietud informar al propietario del código.
  */

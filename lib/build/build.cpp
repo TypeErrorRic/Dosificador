@@ -49,39 +49,44 @@ void doRegresionCuadratica()
 		Matriz.get_Matriz();
 		Matriz.Calcular();
 	}
+	++(A = Matriz.Get_valor_a());
+	++(X = Matriz.Get_valor_x1());
+	++(X2 = Matriz.Get_valor_x2());
+	++(VARIABLE_REST = 1);
 }
 
 /************ IMPLEMETNACIÓN PARA EL CALCULO DE LA DERIVADA **************/
+//Función de interpretación del convertidor analogico.
+static float Medir_Peso()
+{
+	return ((float)(analogRead(A0)/(float)1023)*1000);
+};
 
+//Realizar la derivada.
 void doDerivada()
 {
+	getLcd().clear();
+	while(1) 
+	{
+		escribirLcd<String>("Peso:", 0,0);
+		escribirLcd<float>(Medir_Peso(), 0, 9);
+		escribirLcd<String>(" G", 0, 11);
+		escribirLcd<String>("Dervida:", 1,0);
+		getLcd().print(Derivada(Medir_Peso(), Medir_Peso, 500));
+	}
 }
 
 /************ IMPLEMETNACIÓN DE LA DISPENSADORA DE GRANO **************/
-static unsigned long prev = 0;
 // Devuelve el estado de la Tolva dispensadora.
 bool stateTolva()
 {
-	if (getEstado() == 3)
-		prev = 0;
-	// Simulación:
-	if (prev > 0ul)
+	if (digitalRead(PIN_SENSOR_TOLVA))
 	{
-		if ((millis() - prev) >= 5000UL)
-		{
-			prev = 0ul;
-			return false;
-		}
-		else
-			return true;
+		delay(TIEMPO_REVISION);
+		return digitalRead(PIN_SENSOR_TOLVA);
 	}
 	else
-	{
-		if (SENSAR_TOLVA)
-			return true;
-		else
-			return false;
-	}
+		return false;
 }
 
 // Activa la función de llenado de la Tolva dispensadora.
@@ -89,7 +94,6 @@ void fillTolva()
 {
 	// Aquiva el programa:
 	Serial.println("Llenado...");
-	prev = millis();
 }
 
 // Dectiene la Función de llenado de la Tolva dispensadora.
@@ -105,20 +109,17 @@ void offTolva()
 bool revisarEnvase(short &Tipo)
 {
 	// Programa de reconocimiento de envase:
-	if (Serial.available() > 0)
+	if (digitalRead(PIN_ENVASADO) && !RECONOCIMIENTO_ENVASE)
 	{
-		switch ((char)Serial.read())
+		delay(TIEMPO_REVISION);
+		if (digitalRead(PIN_ENVASADO)) {MRECONOCIMIENTO_ENVASE(1);}
+	}
+	else
+	{
+		if (RECONOCIMIENTO_ENVASE && !digitalRead(PIN_ENVASADO))
 		{
-		case '1':
-			if (RECONOCIMIENTO_ENVASE)
-			{
-				MRECONOCIMIENTO_ENVASE(0);
-			}
-			else
-				MRECONOCIMIENTO_ENVASE(1) { ; }
-			break;
-		default:
-			break;
+			delay(TIEMPO_REVISION);
+			if (!digitalRead(PIN_ENVASADO)) {MRECONOCIMIENTO_ENVASE(0);}
 		}
 	}
 	// Programa de reconocimiento de tipo:
@@ -131,6 +132,7 @@ bool revisarEnvase(short &Tipo)
 			Serial.println("Ingrese el tipo de envase: ");
 			// Programa de reconocimiento de envase:
 			while (1)
+			{
 				while (Serial.available() > 0)
 				{
 					switch ((char)Serial.read())
@@ -147,11 +149,6 @@ bool revisarEnvase(short &Tipo)
 						Tipo = 3;
 						return true;
 						break;
-					case '4':
-						Tipo = 3;
-						MCICLO_LLENADO(1);
-						return true;
-						break;
 					default:
 						Tipo = 10;
 						Serial.println("El envase no pertene a uno de los 3");
@@ -164,6 +161,13 @@ bool revisarEnvase(short &Tipo)
 						Serial.println(TIPO_ENVASE);
 					}
 				}
+				if(!digitalRead(PIN_ENVASADO)) //Revisar si el envase sigue en el puesto.
+				{
+					MRECONOCIMIENTO_ENVASE(0);
+					Serial.println("Se retiro el envase.");
+					return false;
+				}	
+			}
 		}
 		return true;
 	}
@@ -180,36 +184,25 @@ void llenandoEnvase()
 {
 	// Aqui va el programa de llenado.
 	Serial.println("Llenando envase.");
-	prev = millis();
 }
 
 // Verfica el llenado del envase.
 bool revisarLLenado()
 {
-	if (prev > 0ul)
+	// Programa para revisar se lleno el envase.
+	if (digitalRead(PIN_CICLO_LLENADO))
 	{
-		if ((millis() - prev) >= 5000UL)
-		{
-			prev = 0ul;
-			return true;
-		}
-		else
-		{
-			return false;
-		}
+		delay(TIEMPO_REVISION);
+		return digitalRead(PIN_CICLO_LLENADO);
 	}
 	else
-	{
-		if (CICLO_LLENADO)
-			return true;
-		else
-			return false;
-	}
+		return false;
 }
 
 // Detiene el llenado del envase.
 float stopLllenadoEnvase()
 {
+	// Programa para detención del llenado del envase.
 	Serial.println("El envase se ha llenado con exito");
 	return 10;
 }
@@ -219,6 +212,9 @@ float stopLllenadoEnvase()
 // Activa la alarma correspondiente al evento que suceda.
 void alarma(short type, bool state)
 {
+	if(state)escribirLcd<String>("!ALARMA!", 0,0, true);
+	if(state)escribirLcd<short>(type, 1,0);
+	if(state)delay(DELAY_EJE);
 	digitalWrite(ALARMA, state);
 }
 
