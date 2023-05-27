@@ -52,7 +52,6 @@ void doRegresionCuadratica()
 	++(A = Matriz.Get_valor_a());
 	++(X = Matriz.Get_valor_x1());
 	++(X2 = Matriz.Get_valor_x2());
-	++(VARIABLE_REST = 1);
 }
 
 /************ IMPLEMETNACIÓN PARA EL CALCULO DE LA DERIVADA **************/
@@ -69,8 +68,8 @@ void doDerivada()
 	while(1) 
 	{
 		escribirLcd<String>("Peso:", 0,0);
-		escribirLcd<float>(Medir_Peso(), 0, 9);
-		escribirLcd<String>(" G", 0, 11);
+		escribirLcd<float>(Medir_Peso(), 0, 7);
+		escribirLcd<String>(" G", 0, 13);
 		escribirLcd<String>("Dervida:", 1,0);
 		getLcd().print(Derivada(Medir_Peso(), Medir_Peso, 500));
 	}

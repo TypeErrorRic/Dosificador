@@ -140,6 +140,9 @@ class Memoria
         const unsigned short &Dirr() const          { return dirrecion; }
         // Funcionalidad para arreglos:
         Memoria &operator[](int indx)               { return dirrecion = func_ptr(dato, EEPROM, dirrecion_estable, indx), *this; }
+        //Funciones de comparación:
+        bool operator==(Tipo_dato compara) const    { return dato == compara ? true : false; }    
+        bool operator!=(Tipo_dato compara) const    { return dato != compara ? true : false; }  
 };
 
 // Template para manejo de datos normales.

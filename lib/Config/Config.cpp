@@ -117,7 +117,7 @@ short Modo_Configuracion()
           break;
         case '2':
           MODO_OPERACION = 1;
-          crash = true;
+          crash = false;
           break;
         case '3':
           MODO_OPERACION = 2;
@@ -132,14 +132,15 @@ short Modo_Configuracion()
         }
       }      
     }
-    if(crash == false)
+    if(!crash)
     {
       ++MODO_OPERACION;
-      ++(VARIABLE_REST = 0); 
+      if (MODO_OPERACION != 1) {++(VARIABLE_REST = 0);}
+      if (MODO_OPERACION == 1) {crash = true;}
       count = 0; 
     } 
   }
-  crash = false;
+  if (MODO_OPERACION != 1) {crash = false;}
   timer = millis();
   return *MODO_OPERACION;
 }
