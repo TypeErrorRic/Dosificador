@@ -61,9 +61,5 @@ void loop()
 }
 
 /**
- * @note Implemenar visualización de derivada y Regresión.
-*/
-
-/**
  * @attention Cualquier inquietud informar al propietario del código.
  */

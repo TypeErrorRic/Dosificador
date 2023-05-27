@@ -117,7 +117,7 @@ short Modo_Configuracion()
           break;
         case '2':
           MODO_OPERACION = 1;
-          crash = false;
+          crash = true;
           break;
         case '3':
           MODO_OPERACION = 2;
