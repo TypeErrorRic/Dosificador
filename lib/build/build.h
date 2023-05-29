@@ -20,8 +20,18 @@
 
 /************ FUNCIONES PARA EL CALCULO DE LA REGRESION CUADRATICA **************/
 
+#define PIN_PESO_ENTRADA    A0
+
+#define DISTANCIA_MINIMA	5
+
+extern short puntos_busquedad[]; //Posiciones o modos de operación.
+
+#define	 num_elements 		5 // Elementos o modos de operación de la apertura de la tolva.
+
 void initRegresionCuadratica();
 void doRegresionCuadratica();
+
+int Calibracion();
 
 /**
  * @note Para la comprobación de los calculos realizador por el programa <<Regresion_Cuadratica.h>
