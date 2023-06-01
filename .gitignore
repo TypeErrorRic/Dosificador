@@ -16,3 +16,4 @@ include/*.md
 #Ignorar archivos que no pertenecen al proyecto:
 *.docx
 *.pdf
+*.tmp
