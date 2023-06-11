@@ -178,6 +178,8 @@ void Imprimir_dato()
   Serial.println(*A);
   Serial.print("# ciclos: ");
   Serial.println(*NUM_CICLO_FINAL - 5);
+  Serial.println("Scale: ");
+  Serial.println(*SCALE);
 }
 //Función para Visualización de datos alamancenados en la EEPROM.
 void EjecucionMemoria()

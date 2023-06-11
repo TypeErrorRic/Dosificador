@@ -9,7 +9,6 @@
  */
 #include <Build.h>
 
-
 /**
  * @brief Función que se encarga de configurar los parametros inciales de las funciones.
  */
@@ -18,18 +17,28 @@ void setup()
   // Inicializar trasmición:
   Serial.begin(VELOCIDA_TX);
   setLCD();
-  //Configuracion Base del Sistema:
-  //Inicialización de pines:
-  pinMode(PORTCONMUT, INPUT); // Pin del conmutador.
-  pinMode(PIN_ENVASADO, INPUT); //Pin del sistema de envasado.
-  pinMode(PIN_SENSOR_TOLVA, INPUT); //Pin del sistema de envasado.
-  pinMode(PIN_CICLO_LLENADO, INPUT); //Pin del sistema de ciclo de envasado.
-  //Inicialización de funciones
+  // Configuracion Base del Sistema:
+  // Inicialización de pines:
+  pinMode(PORTCONMUT, INPUT);        // Pin del conmutador.
+  pinMode(PIN_ENVASADO, INPUT);      // Pin del sistema de envasado.
+  pinMode(PIN_SENSOR_TOLVA, INPUT);  // Pin del sistema de envasado.
+  pinMode(PIN_CICLO_LLENADO, INPUT); // Pin del sistema de ciclo de envasado.
+  // Inicialización de funciones
   RevisionSensoresInit(); // Revisar sensores.
   initRegresionCuadratica();
   initAlarma();
-  //Mensaje de finalización de configuración.
+  // Mensaje de finalización de configuración.
   Serial.println("Listo");
+  unsigned long time = millis();
+  while (1)
+  {
+    if (millis() - time >= 5000)
+    {
+      stopMediciones();
+      break;
+    }
+    confirmarEnvase(1000);
+  }
 }
 
 /**
@@ -41,7 +50,7 @@ void loop()
   {
   case 0:
     while (1)
-      flujo_ejecucion_programa(stateTolva, fillTolva, offTolva, revisarEnvase, 
+      flujo_ejecucion_programa(stateTolva, fillTolva, offTolva, revisarEnvase,
         revisarLLenado, llenandoEnvase, stopLllenadoEnvase, alarma);
     break;
   case 1:
@@ -59,7 +68,6 @@ void loop()
     break;
   }
 }
-
 /**
  * @attention Cualquier inquietud informar al propietario del código.
  */

@@ -115,6 +115,8 @@ Memoria<float, Array<float>> PESO(true);
 Memoria<unsigned short, Sumar<unsigned short>> VARIABLE_REST;
 //Almacena el modo de operacion:
 Memoria<unsigned short, Sumar<unsigned short>> MODO_OPERACION;
+//Alamacena el facto de escala de la celdad:
+Memoria<float, Sumar<float>> SCALE;
 
 void LIMPIAR()
 {
@@ -128,6 +130,7 @@ void LIMPIAR()
 		++(PESO[i] = 0);
 	}
 	++(NUM_CICLO_FINAL = 5);
+	++(SCALE = 0);
 }
 
 void LIMPIAR_DEFAULT()
@@ -146,6 +149,7 @@ void Dirreciones()
 		Serial.println(PESO[i].Dirr());
 	}
 	Serial.print("Ciclos: "); Serial.println(NUM_CICLO_FINAL.Dirr());
+	Serial.print("Escala: "); Serial.println(SCALE.Dirr());
 }
 
 

@@ -15,6 +15,7 @@
 #include <Config.h> //Desarrollado por Ricardo Pabón Serna.
 #include <Regresion_Cuadratica.h> //Desarrollado Por Ricardo Pabón Serna.
 #include <Derivada.h> //Desarollado por Ricardo Pabón Serna.
+#include <Celdad_Carga.h> //Desarrollado por Ricardo Pabón Serna.
 
 #define TIEMPO_REVISION     500 //El tiempo en que se va a efectuar la revisión de los sensor.
 

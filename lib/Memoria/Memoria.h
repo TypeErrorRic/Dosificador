@@ -220,6 +220,8 @@ extern Memoria<float, Array<float>> PESO;
 extern Memoria<unsigned short, Sumar<unsigned short>> VARIABLE_REST;
 // Guardar el Modo de Operacion:
 extern Memoria<unsigned short, Sumar<unsigned short>> MODO_OPERACION;
+// Guardar la escala de la celdad de cargsa:
+extern Memoria<float, Sumar<float>> SCALE;
 
 // funciones de Limpieza:
 void LIMPIAR();

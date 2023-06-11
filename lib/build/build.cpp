@@ -34,6 +34,12 @@ static bool aproxFunction(int valor, short &index)
 	else return false;
 }
 
+//Función para capturar el ángulo de giro del sistema de apertura de la tolva dosificadora:
+static int captureAngle()
+{
+	return (int)((float)(analogRead(PIN_PESO_ENTRADA)/(float)1023)*100);
+}
+
 //Función para realizar la captura de datos para realizar la regresión cuadratica usnado promedio
 static void captureModulate(float &x, int (*y)(void), float &z, bool get_realizar)
 {
@@ -41,7 +47,7 @@ static void captureModulate(float &x, int (*y)(void), float &z, bool get_realiza
 	unsigned long count = 0;
 	while(1)
 	{
-		if (aproxFunction(((int)((float)(analogRead(PIN_PESO_ENTRADA)/(float)1023)*100)), puntos_busquedad[count % num_elements]) && get_realizar)
+		if (aproxFunction(captureAngle(), puntos_busquedad[count % num_elements]) && get_realizar)
 		{
 			for(short i = 0; i < 10; i++) aux += y();
 			aux /= 10;
