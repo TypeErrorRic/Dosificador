@@ -15,7 +15,7 @@
 
 #define CRITERIO_ENVASE 10 //Criterio minimo para identificar un envase.
 
-#define PESO_COMPROBACION 1
+#define PESO_COMPROBACION 500
 
 // Clase para acceder a las funciones de HX711 por medio de Asociación.
 class Celdad_Carga

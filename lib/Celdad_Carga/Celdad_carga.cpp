@@ -101,6 +101,8 @@ void initCeldad(unsigned int num)
         Celdad_Carga::celdadCarga.set_scale();
         Celdad_Carga::celdadCarga.begin(DOUT, CLOCK);
         Celdad_Carga::celdadCarga.tare(20);
+        escribirLcd<String>("Coloque el peso de 500g", 0, 0, true);
+        delay(2000);
         // Toma de valores para la calibración.
         for (int i = 0; i < 100; i++)
         {
