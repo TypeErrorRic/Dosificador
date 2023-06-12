@@ -108,7 +108,8 @@ void initCeldad(unsigned int num)
         }
         // Cargar valores de la memoria.
         ++(FACTOR_CELDADCARGA = Celdad_Carga::celdadCarga.get_offset());
-        ++(SCALE = *SCALE / 100);
+        SCALE = *SCALE / 100;
+        ++(SCALE = *SCALE / PESO_COMPROBACION);
     }
     if (!HX_711.medicion)
     {
