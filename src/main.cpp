@@ -8,7 +8,7 @@
  * @copyright Copyright (c) 2022
  */
 #include <Build.h>
-
+#include <Memoria.h>
 /**
  * @brief Función que se encarga de configurar los parametros inciales de las funciones.
  */
@@ -17,6 +17,7 @@ void setup()
   // Inicializar trasmición:
   Serial.begin(VELOCIDA_TX);
   setLCD();
+  /*
   // Configuracion Base del Sistema:
   // Inicialización de pines:
   pinMode(PORTCONMUT, INPUT);        // Pin del conmutador.
@@ -28,24 +29,28 @@ void setup()
   initRegresionCuadratica();
   initAlarma();
   // Mensaje de finalización de configuración.
-  /*
-  unsigned long time = millis();
-  while (1)
-  {
-    if (millis() - time >= 5000)
-    {
-      stopMediciones();
-      break;
-    }
-    confirmarEnvase(1000);
-  }
   */
+  Serial.println("Ready");
+  //initCeldad(100);
+  Serial.print("Factor: ");
+  Serial.println(*FACTOR_CELDADCARGA);
+  Serial.print("Scale: ");
+  Serial.println(*SCALE);
+  delay(2000);
+}
+
+short dato = 0;
+
+void loop()
+{
+  revisarEnvase(dato);
+  Serial.println(dato);
 }
 
 /**
  * @brief Bucle incial de ejecución.
  */
-
+/*
 void loop()
 {
   switch (Modo_Configuracion())
@@ -70,7 +75,7 @@ void loop()
     break;
   }
 }
-
+*/
 
 /**
  * @attention Cualquier inquietud informar al propietario del código.

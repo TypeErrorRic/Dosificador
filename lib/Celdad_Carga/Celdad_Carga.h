@@ -23,11 +23,11 @@
 #define F_CPU 16000000ul
 #endif
 
-#define SIZE_ARREGLO    10
+#define SIZE_ARREGLO 10
 
-#define APROX_PARA_VALOR_CELDAD_CARGA 3 //Número de datos tomados por la celdad de carga.
+#define APROX_PARA_VALOR_CELDAD_CARGA 3 // Número de datos tomados por la celdad de carga.
 
-#define CRITERIO_ENVASE 10 //Criterio minimo para identificar un envase.
+#define CRITERIO_ENVASE 10 // Criterio minimo para identificar un envase.
 
 #define PESO_COMPROBACION 500.0
 
@@ -35,31 +35,32 @@
 class Celdad_Carga
 {
 private:
-    unsigned int time; //Tiempo entre toma de datos.
+    unsigned int time; // Tiempo entre toma de datos.
+    static bool configHx711; //Config HX711;
 
 public:
-    static bool medicion; //Permite definir si se está realizando la medición
-    static HX711 celdadCarga; //Clase con las operaciones de obtención de pesos.
-    static volatile unsigned int counter; //Contador de iteraciones
-    static volatile double data[SIZE_ARREGLO]; //Valores de la regresión cuadratica.
-    Celdad_Carga() { celdadCarga.begin(DOUT, CLOCK); } // Inicializar HX711.
-    void stop(); //Detiene la toma de datos.
-    void begin(); //Inicia la toma de datos.
-    void configTime(unsigned int num); //Configura el tiempo entre toma de datos
+    static bool medicion;                                       // Permite definir si se está realizando la medición
+    static HX711 celdadCarga;                                   // Clase con las operaciones de obtención de pesos.
+    static volatile unsigned int counter;                       // Contador de iteraciones
+    static volatile double data[APROX_PARA_VALOR_CELDAD_CARGA]; // Valores de la regresión cuadratica.
+    Celdad_Carga() { celdadCarga.begin(DOUT, CLOCK); }          // Inicializar HX711.
+    void stop();                                                // Detiene la toma de datos.
+    void begin();                                               // Inicia la toma de datos.
+    void configTime(unsigned int num);                          // Configura el tiempo entre toma de datos
 };
 
 // Funciones para cargar los valores de la celdad de carga en la heap.
 void initCeldad(unsigned int num);
 // Detiene las mediciones.
 void stopMediciones();
-//Obtener el valor de la celdad de carga.
+// Obtener el valor de la celdad de carga.
 float getCeldadcargaValue();
 
-#define TIME_COMPROBACION 100 //Tiempo entre comprobaciones para permitir saber si hay un envase
+#define TIME_COMPROBACION 100 // Tiempo entre comprobaciones para permitir saber si hay un envase
 
-//Confirma si hay un envase o no en el sitio de envasado.
+// Confirma si hay un envase o no en el sitio de envasado.
 bool confirmarEnvase();
-//Determinar el envase que hay en el sitio de envasado.
+// Determinar el envase que hay en el sitio de envasado.
 int tipoEnvase();
 
 typedef struct
@@ -68,7 +69,7 @@ typedef struct
     volatile bool doDerivada;
 } pvMecionParams;
 
-//Captura del dato:
+// Captura del dato:
 void Captura_dato();
 
 typedef struct
@@ -76,15 +77,16 @@ typedef struct
     float medicionHx;
     float resultDev;
     float angle;
+    bool changeMedicion;
 } pvResultsMedicion;
 
 extern pvResultsMedicion Medidas;
 
-#define ENVASE_1_PESO        106
-#define ENVASE_2_PESO        148
-#define ENVASE_3_PESO        228
+#define ENVASE_1_PESO 106
+#define ENVASE_2_PESO 148
+#define ENVASE_3_PESO 228
 
-#define VALOR_DESFASE   20
+#define VALOR_DESFASE 20
 
 bool reconocerEnvase(short &tipo);
 

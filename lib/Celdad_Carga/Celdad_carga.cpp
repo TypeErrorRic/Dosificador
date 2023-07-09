@@ -1,13 +1,14 @@
 #include <Celdad_Carga.h>
 #include <Memoria.h>
 #include <Config.h>
-//Interrupciones del sistema:
+// Interrupciones del sistema:
 #include <avr/interrupt.h>
 
 // Parametros:
-volatile double Celdad_Carga::data[SIZE_ARREGLO] = {};
+volatile double Celdad_Carga::data[APROX_PARA_VALOR_CELDAD_CARGA] = {};
 volatile unsigned int Celdad_Carga::counter = 0;
 bool Celdad_Carga::medicion = false;
+bool Celdad_Carga::configHx711 = true;
 
 // Incializar la celdad de carga:
 HX711 Celdad_Carga::celdadCarga = HX711();
@@ -46,13 +47,17 @@ void Celdad_Carga::begin()
         OCR1A = aux <= MIN_VALUE ? MIN_VALUE : aux;
         // ACTIVANDO MODO DE INTERRUPCIONES:
         sei();
+        if (configHx711)
+        {
+            // Esperar a que el
+            celdadCarga.read();
+            // Funciones para incializar el HX711:
+            celdadCarga.set_offset(*FACTOR_CELDADCARGA); // Establece la tara.
+            celdadCarga.set_scale(*SCALE);
+            configHx711 = false;
+        }
         // Medición activada:
         medicion = true;
-        // Esperar a que el
-        celdadCarga.read();
-        // Funciones para incializar el HX711:
-        celdadCarga.set_offset(*FACTOR_CELDADCARGA); // Establece la tara.
-        celdadCarga.set_scale(*SCALE);
         // Permite determinar si la escala va a hacer en kilogramos o gramos.
         Mediciones.flagCaptureMedicion = true;
         // Refrezcar medidas de los datos:
@@ -64,8 +69,9 @@ void Celdad_Carga::begin()
         // Inicializar sistema:
         auxmed = getCeldadcargaValue();
         past_timer = millis();
-        // Counter:
-        counter = 3;
+        counter = 0;
+        Medidas.changeMedicion = true;
+        Medidas.medicionHx = 0;
     }
 }
 
@@ -84,13 +90,18 @@ void Captura_dato()
             past_timer = millis();
             auxmed = getCeldadcargaValue();
             Mediciones.doDerivada = false;
+            Celdad_Carga::data[Celdad_Carga::counter % APROX_PARA_VALOR_CELDAD_CARGA] = Celdad_Carga::celdadCarga.get_units(5);
+            Celdad_Carga::counter++;
         }
         else
         {
             // Tomar el valor del HX711:
-            Celdad_Carga::data[Celdad_Carga::counter % SIZE_ARREGLO] = Celdad_Carga::celdadCarga.get_units(5);
-            // Prender o apagar led de Confirmación de toma de datos.
+            Celdad_Carga::data[Celdad_Carga::counter % APROX_PARA_VALOR_CELDAD_CARGA] = Celdad_Carga::celdadCarga.get_units(5);
+            Celdad_Carga::counter++;
+            escribirLcd<int>(Celdad_Carga::counter, 0, 0, true);
+            // Restalecer banderas:
             Mediciones.flagCaptureMedicion = false;
+            Medidas.changeMedicion = true;
         }
     }
 }
@@ -100,12 +111,12 @@ ISR(TIMER1_COMPA_vect)
 {
     // Determinar si se toma medición de un dato:
     Mediciones.flagCaptureMedicion = true;
-    Celdad_Carga::counter++;
     // Determinar si se hace la derivada:
     if ((Celdad_Carga::counter % 10) == 0)
         Mediciones.doDerivada = true;
     // Reiniciar el contador.
     TCNT1 = 0;
+    // FUNCIONAMINETO DE LA INTERRUPCIÓN CORRECTO:
     digitalWrite(13, !digitalRead(13));
 }
 
@@ -127,7 +138,7 @@ void Celdad_Carga::stop()
         medicion = false;
 
         // Reiniciar arreglo de valores:
-        for (short i = 0; i < SIZE_ARREGLO; i++)
+        for (short i = 0; i < APROX_PARA_VALOR_CELDAD_CARGA; i++)
         {
             Celdad_Carga::data[i] = 0;
         }
@@ -210,17 +221,18 @@ float getCeldadcargaValue()
 {
     double aux = 0;
     // Obtener el valor medio de las mediciones de la celdad de carga:
-    if (Celdad_Carga::medicion)
+    if (Celdad_Carga::medicion && Medidas.changeMedicion)
     {
         // Deshabilitar interupciones:
         cli();
         for (short i = 0; i < APROX_PARA_VALOR_CELDAD_CARGA; i++)
-            aux += Celdad_Carga::data[(((Celdad_Carga::counter - APROX_PARA_VALOR_CELDAD_CARGA) + i) % SIZE_ARREGLO)];
+            aux += Celdad_Carga::data[i];
         // Habilitar interupciones:
         sei();
-        return aux / APROX_PARA_VALOR_CELDAD_CARGA;
+        Medidas.medicionHx = aux / APROX_PARA_VALOR_CELDAD_CARGA;
+        Medidas.changeMedicion = false;
     }
-    return 0;
+    return Medidas.medicionHx;
 }
 
 #define TIME_COMPROBACION_GLOBAL ((unsigned int)TIME_COMPROBACION * SIZE_ARREGLO)
@@ -228,13 +240,12 @@ float getCeldadcargaValue()
 static float getaValueFull()
 {
     float result = 0;
-    cli();
+    //Obtener media con 10 datos:
     for (short i = 0; i < SIZE_ARREGLO; i++)
     {
-        result += Celdad_Carga::data[i];
+        result += Celdad_Carga::celdadCarga.get_units(5);
     }
-    sei();
-    return result;
+    return (result / SIZE_ARREGLO);
 }
 
 /**
@@ -245,31 +256,44 @@ static float getaValueFull()
  */
 bool confirmarEnvase()
 {
-    unsigned long T = millis();
+    float resultfinal = 0;
     // Inicializar la celdad de carga.
     if (!Celdad_Carga::medicion)
     {
-        // Inicializar toma de datos.
-        initCeldad((TIME_COMPROBACION));
+        initCeldad(100);
         // Tiempo de toma de datos:
-        while ((millis() - T) < (TIME_COMPROBACION_GLOBAL + 10))
+        while (Celdad_Carga::counter <= APROX_PARA_VALOR_CELDAD_CARGA)
         {
-            Mediciones.flagCaptureMedicion = true;
+            // Capturando datos:
             Captura_dato();
         }
+        float resultConfirm2 = getCeldadcargaValue();
         // Detener toma de datos
         stopMediciones();
+        // Tiempo de confirmación
+        delay(TIME_COMPROBACION);
+        // Comprobación del dato Tomado:
+        float resultConfirm1 = getaValueFull();
+        // Obteniendo dato final:
+        if (((resultConfirm1 - resultConfirm2) <= VALOR_DESFASE) && ((resultConfirm1 - resultConfirm2) >= (VALOR_DESFASE * (-1))))
+            resultfinal = (resultConfirm1 + resultConfirm2) / 2;
+        else
+        {
+            // Colocar el envase a último momento
+            if ((resultConfirm1 > CRITERIO_ENVASE) && ((resultConfirm1 - resultConfirm2) > (VALOR_DESFASE + 20)))
+                resultfinal = resultConfirm1;
+            // No se coloco un envase.
+        }
+    }
+    else
+    {
+        resultfinal = getCeldadcargaValue();
     }
     // Verificar si hay un envase o no:
-    if (getaValueFull() >= CRITERIO_ENVASE)
+    if (resultfinal >= CRITERIO_ENVASE)
         return true;
     else
         return false;
-    // Reiniciar arreglo de valores:
-    for (short i = 0; i < SIZE_ARREGLO; i++)
-    {
-        Celdad_Carga::data[i] = 0;
-    }
     return false;
 }
 
@@ -291,41 +315,47 @@ static short definirEnvase(float valor)
 
 bool reconocerEnvase(short &tipo)
 {
-    unsigned long T = millis();
+    float resultfinal = 0;
     // Inicializar la celdad de carga.
     if (!Celdad_Carga::medicion)
     {
-        // Inicializar toma de datos.
-        initCeldad((TIME_COMPROBACION));
+        // Inicializar la celdad de carga.
+        initCeldad(100);
         // Tiempo de toma de datos:
-        while ((millis() - T) < (TIME_COMPROBACION_GLOBAL + 10))
+        while (Celdad_Carga::counter <= APROX_PARA_VALOR_CELDAD_CARGA)
         {
-            Mediciones.flagCaptureMedicion = true;
+            // Capturando datos:
             Captura_dato();
         }
+        float resultConfirm2 = getCeldadcargaValue();
         // Detener toma de datos
         stopMediciones();
+        // Tiempo de confirmación
+        delay(TIME_COMPROBACION);
+        // Comprobación del dato Tomado:
+        float resultConfirm1 = getaValueFull();
+        // Obteniendo dato final:
+        if (((resultConfirm1 - resultConfirm2) <= VALOR_DESFASE) && ((resultConfirm1 - resultConfirm2) >= (VALOR_DESFASE * (-1))))
+            resultfinal = (resultConfirm1 + resultConfirm2) / 2;
+        else
+        {
+            // Colocar el envase a último momento
+            if ((resultConfirm1 > CRITERIO_ENVASE) && ((resultConfirm1 - resultConfirm2) > (VALOR_DESFASE + 20)))
+                resultfinal = resultConfirm1;
+            // No se coloco un envase.
+        }
     }
-    switch (definirEnvase(getaValueFull()))
+    // Determinar el envase:
+    switch (definirEnvase(resultfinal))
     {
     case 0:
         // No es ningun envase retorna false:
-        // Reiniciar arreglo de valores:
-        for (short i = 0; i < SIZE_ARREGLO; i++)
-        {
-            Celdad_Carga::data[i] = 0;
-        }
         return false;
         break;
     default:
         // Verificar que tipo de envase es:
-        tipo = definirEnvase(getaValueFull());
+        tipo = definirEnvase(resultfinal);
         break;
-    }
-    // Reiniciar arreglo de valores:
-    for (short i = 0; i < SIZE_ARREGLO; i++)
-    {
-        Celdad_Carga::data[i] = 0;
     }
     return true;
 }
