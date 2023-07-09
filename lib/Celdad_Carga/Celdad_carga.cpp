@@ -4,6 +4,8 @@
 // Interrupciones del sistema:
 #include <avr/interrupt.h>
 
+///////////////////////////DECLARACIÓN DE VARAIBLES FUNCIONAMIENTO CELDAD DE CARGA///////////////////////////
+
 // Parametros:
 volatile double Celdad_Carga::data[APROX_PARA_VALOR_CELDAD_CARGA] = {};
 volatile unsigned int Celdad_Carga::counter = 0;
@@ -27,6 +29,11 @@ static pvMecionParams Mediciones;
 // Valores de calculos anteriores del sistema de celdad de carga:
 static unsigned long past_timer;
 static float auxmed;
+
+// Realizar estructura:
+pvResultsMedicion Medidas;
+
+///////////////////////////FUNCIONES DE LA CLASE HX711///////////////////////////
 
 // Inicializar las mediciones:
 void Celdad_Carga::begin()
@@ -69,14 +76,11 @@ void Celdad_Carga::begin()
         // Inicializar sistema:
         auxmed = getCeldadcargaValue();
         past_timer = millis();
-        counter = 0;
+        counter = 3;
         Medidas.changeMedicion = true;
         Medidas.medicionHx = 0;
     }
 }
-
-// Realizar estructura:
-pvResultsMedicion Medidas;
 
 // Función de captura y realización de derivada del sistema:
 void Captura_dato()
@@ -98,7 +102,6 @@ void Captura_dato()
             // Tomar el valor del HX711:
             Celdad_Carga::data[Celdad_Carga::counter % APROX_PARA_VALOR_CELDAD_CARGA] = Celdad_Carga::celdadCarga.get_units(5);
             Celdad_Carga::counter++;
-            escribirLcd<int>(Celdad_Carga::counter, 0, 0, true);
             // Restalecer banderas:
             Mediciones.flagCaptureMedicion = false;
             Medidas.changeMedicion = true;
@@ -150,7 +153,7 @@ void Celdad_Carga::configTime(unsigned int num)
     this->time = num;
 }
 
-/*******************FUNCIONES PARA ACCESO A LOS DATOS******************/
+///////////////////////////FUNCIONES MANEJAR EL FLUJO DEL FUNCIONAMIENTO CELDAD DE CARGA///////////////////////////
 
 // Instancia de celdad de carga para realizar mediciones.
 static Celdad_Carga HX_711;
@@ -216,6 +219,8 @@ void stopMediciones()
     HX_711.stop();
 }
 
+///////////////////////////FUNCIONES PARA LA OBTENCIÓN DE VALORES DE LA CELDAD DE CARGA///////////////////////////
+
 // Devolver el valor del HX711 de las 3 ultimas mediciones:
 float getCeldadcargaValue()
 {
@@ -225,11 +230,16 @@ float getCeldadcargaValue()
     {
         // Deshabilitar interupciones:
         cli();
-        for (short i = 0; i < APROX_PARA_VALOR_CELDAD_CARGA; i++)
-            aux += Celdad_Carga::data[i];
+        //Obtener el peso del dato en relación con su importancia:
+        aux += Celdad_Carga::data[((Celdad_Carga::counter - 2) % APROX_PARA_VALOR_CELDAD_CARGA)]*0.20;
+        aux += Celdad_Carga::data[((Celdad_Carga::counter - 1) % APROX_PARA_VALOR_CELDAD_CARGA)]*0.30;
+        aux += Celdad_Carga::data[((Celdad_Carga::counter) % APROX_PARA_VALOR_CELDAD_CARGA)]*0.50;
         // Habilitar interupciones:
         sei();
-        Medidas.medicionHx = aux / APROX_PARA_VALOR_CELDAD_CARGA;
+        if (aux < 0)
+            Medidas.medicionHx = 0;
+        else
+            Medidas.medicionHx = aux;
         Medidas.changeMedicion = false;
     }
     return Medidas.medicionHx;
@@ -237,56 +247,68 @@ float getCeldadcargaValue()
 
 #define TIME_COMPROBACION_GLOBAL ((unsigned int)TIME_COMPROBACION * SIZE_ARREGLO)
 
+// Función para devolver el valor medio de 10 datos:
 static float getaValueFull()
 {
     float result = 0;
-    //Obtener media con 10 datos:
+    // Obtener media con 10 datos:
     for (short i = 0; i < SIZE_ARREGLO; i++)
     {
         result += Celdad_Carga::celdadCarga.get_units(5);
     }
-    return (result / SIZE_ARREGLO);
+    result = (result / SIZE_ARREGLO);
+    if (result < 0)
+        return 0.01;
+    else
+        return result;
 }
 
-/**
- * @brief Confirma si hay un envase o no en el sitio de envasado.
- * @param num Tiempo en milisegundos.
- * @param concurrente Permite realizar tareas mientras se hace la confirmación del envase.
- * @param stop Para la comprobacion en tiempo concurrente.
- */
+// Función para obtener el peso exacto:
+static void detecionEnvase(float &tipo)
+{
+    initCeldad(100);
+    // Tiempo de toma de datos:
+    while (Celdad_Carga::counter < (APROX_PARA_VALOR_CELDAD_CARGA + 3))
+    {
+        // Capturando datos:
+        Captura_dato();
+    }
+    float resultConfirm2 = getCeldadcargaValue();
+    // Detener toma de datos
+    stopMediciones();
+    // Tiempo de confirmación
+    delay(TIME_COMPROBACION);
+    // Comprobación del dato Tomado:
+    float resultConfirm1 = getaValueFull();
+    // Calculo del error de funcionamiento:
+    float porcentajeError = abs(((resultConfirm1 - resultConfirm2) / resultConfirm1) * 100);
+    Serial.print("Porcentaje error medidas: ");
+    Serial.println(porcentajeError);
+    // Obteniendo dato final:
+    if (porcentajeError <= VALOR_ERROR)
+        tipo = (resultConfirm1 + resultConfirm2) / 2;
+    else
+    {
+        // Colocar el envase a último momento
+        if ((resultConfirm1 > CRITERIO_ENVASE) && (porcentajeError <= VALOR_ERROR_PASAR))
+            tipo = resultConfirm1;
+        else
+            tipo = 0;
+    }
+}
+
+// Permirte comporbar que tipo de envase hay:
 bool confirmarEnvase()
 {
     float resultfinal = 0;
-    // Inicializar la celdad de carga.
     if (!Celdad_Carga::medicion)
     {
-        initCeldad(100);
-        // Tiempo de toma de datos:
-        while (Celdad_Carga::counter <= APROX_PARA_VALOR_CELDAD_CARGA)
-        {
-            // Capturando datos:
-            Captura_dato();
-        }
-        float resultConfirm2 = getCeldadcargaValue();
-        // Detener toma de datos
-        stopMediciones();
-        // Tiempo de confirmación
-        delay(TIME_COMPROBACION);
-        // Comprobación del dato Tomado:
-        float resultConfirm1 = getaValueFull();
-        // Obteniendo dato final:
-        if (((resultConfirm1 - resultConfirm2) <= VALOR_DESFASE) && ((resultConfirm1 - resultConfirm2) >= (VALOR_DESFASE * (-1))))
-            resultfinal = (resultConfirm1 + resultConfirm2) / 2;
-        else
-        {
-            // Colocar el envase a último momento
-            if ((resultConfirm1 > CRITERIO_ENVASE) && ((resultConfirm1 - resultConfirm2) > (VALOR_DESFASE + 20)))
-                resultfinal = resultConfirm1;
-            // No se coloco un envase.
-        }
+        // Reconocer cuanto peso hay en la balanza.
+        detecionEnvase(resultfinal);
     }
     else
     {
+        //Obteneción del reconocimiento de envase rapido:
         resultfinal = getCeldadcargaValue();
     }
     // Verificar si hay un envase o no:
@@ -297,6 +319,7 @@ bool confirmarEnvase()
     return false;
 }
 
+// Reconocer el tipo de envase:
 static short definirEnvase(float valor)
 {
     // Comprobar si es Primer Envase:
@@ -313,43 +336,22 @@ static short definirEnvase(float valor)
         return 0;
 }
 
-bool reconocerEnvase(short &tipo)
+// Reconocer envase en sitio de envasado:
+bool reconocerEnvaseEnSitioEnvasado(short &tipo)
 {
     float resultfinal = 0;
     // Inicializar la celdad de carga.
     if (!Celdad_Carga::medicion)
     {
-        // Inicializar la celdad de carga.
-        initCeldad(100);
-        // Tiempo de toma de datos:
-        while (Celdad_Carga::counter <= APROX_PARA_VALOR_CELDAD_CARGA)
-        {
-            // Capturando datos:
-            Captura_dato();
-        }
-        float resultConfirm2 = getCeldadcargaValue();
-        // Detener toma de datos
-        stopMediciones();
-        // Tiempo de confirmación
-        delay(TIME_COMPROBACION);
-        // Comprobación del dato Tomado:
-        float resultConfirm1 = getaValueFull();
-        // Obteniendo dato final:
-        if (((resultConfirm1 - resultConfirm2) <= VALOR_DESFASE) && ((resultConfirm1 - resultConfirm2) >= (VALOR_DESFASE * (-1))))
-            resultfinal = (resultConfirm1 + resultConfirm2) / 2;
-        else
-        {
-            // Colocar el envase a último momento
-            if ((resultConfirm1 > CRITERIO_ENVASE) && ((resultConfirm1 - resultConfirm2) > (VALOR_DESFASE + 20)))
-                resultfinal = resultConfirm1;
-            // No se coloco un envase.
-        }
+        // detección de envase:
+        detecionEnvase(resultfinal);
     }
     // Determinar el envase:
     switch (definirEnvase(resultfinal))
     {
     case 0:
         // No es ningun envase retorna false:
+        tipo = 0;
         return false;
         break;
     default:

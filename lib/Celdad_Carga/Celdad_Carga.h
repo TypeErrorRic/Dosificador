@@ -23,13 +23,18 @@
 #define F_CPU 16000000ul
 #endif
 
-#define SIZE_ARREGLO 10
+#define SIZE_ARREGLO 5
 
 #define APROX_PARA_VALOR_CELDAD_CARGA 3 // Número de datos tomados por la celdad de carga.
 
 #define CRITERIO_ENVASE 10 // Criterio minimo para identificar un envase.
 
-#define PESO_COMPROBACION 500.0
+#define PESO_COMPROBACION 500.0 //Peso de confirmación
+
+//Lista de pesos de de medición:
+#define IMPORTANCIA_1   0.20
+#define IMPORTANCIA_2   0.30
+#define IMPORTANCIA_3   0.50
 
 // Clase para acceder a las funciones de HX711 por medio de Asociación.
 class Celdad_Carga
@@ -63,6 +68,7 @@ bool confirmarEnvase();
 // Determinar el envase que hay en el sitio de envasado.
 int tipoEnvase();
 
+//Banderas de control del flujo de valores.
 typedef struct
 {
     volatile bool flagCaptureMedicion;
@@ -72,6 +78,7 @@ typedef struct
 // Captura del dato:
 void Captura_dato();
 
+//Estrcutura de datos que se obtienen de la zona de envasado.
 typedef struct
 {
     float medicionHx;
@@ -82,12 +89,18 @@ typedef struct
 
 extern pvResultsMedicion Medidas;
 
+//Medidas de reconocimiento de los pesos de los envases:
 #define ENVASE_1_PESO 106
 #define ENVASE_2_PESO 148
 #define ENVASE_3_PESO 228
 
+//Rango de redondeo de los valores:
 #define VALOR_DESFASE 20
+//Porcentaje de error admitido entre 2 medidas
+#define VALOR_ERROR   0.05
+//Porcentaje de error admitido entre 2 medidas cuando la última medida es mayor al umbral de que hay un envase.
+#define VALOR_ERROR_PASAR   0.25
 
-bool reconocerEnvase(short &tipo);
+bool reconocerEnvaseEnSitioEnvasado(short &tipo);
 
 #endif

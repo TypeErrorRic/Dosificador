@@ -162,7 +162,7 @@ bool revisarEnvase(short &Tipo)
 		//Reconoce el tipo de envase:
 		if (getEstado() == 5)
 		{
-			if(!reconocerEnvase(Tipo))
+			if(!reconocerEnvaseEnSitioEnvasado(Tipo))
 			{
 				Serial.print("Tipo de envase seleccionado: ");
 				Serial.println(Tipo);

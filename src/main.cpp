@@ -43,8 +43,12 @@ short dato = 0;
 
 void loop()
 {
-  revisarEnvase(dato);
-  Serial.println(dato);
+  Serial.println(confirmarEnvase());
+  /*
+  reconocerEnvaseEnSitioEnvasado(dato);
+  escribirLcd<String>("Tipo de envase: ", 0,0, true);
+  escribirLcd<int>(dato, 1,0);
+  */
 }
 
 /**
