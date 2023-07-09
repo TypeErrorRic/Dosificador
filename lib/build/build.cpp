@@ -157,72 +157,34 @@ void offTolva()
 bool revisarEnvase(short &Tipo)
 {
 	// Programa de reconocimiento de envase:
-	if (digitalRead(PIN_ENVASADO) && !RECONOCIMIENTO_ENVASE)
+	if (confirmarEnvase())
 	{
-		delay(TIEMPO_REVISION);
-		if (digitalRead(PIN_ENVASADO)) {MRECONOCIMIENTO_ENVASE(1);}
-	}
-	else
-	{
-		if (RECONOCIMIENTO_ENVASE && !digitalRead(PIN_ENVASADO))
-		{
-			delay(TIEMPO_REVISION);
-			if (!digitalRead(PIN_ENVASADO)) {MRECONOCIMIENTO_ENVASE(0);}
-		}
-	}
-	// Programa de reconocimiento de tipo:
-	if (RECONOCIMIENTO_ENVASE)
-	{
+		//Reconoce el tipo de envase:
 		if (getEstado() == 5)
 		{
-			Serial.readString();
-			Serial.println("Se ha reconido un envase.");
-			Serial.println("Ingrese el tipo de envase: ");
-			// Programa de reconocimiento de envase:
-			while (1)
+			if(!reconocerEnvase(Tipo))
 			{
-				while (Serial.available() > 0)
-				{
-					switch ((char)Serial.read())
-					{
-					case '1':
-						Tipo = 1;
-						return true;
-						break;
-					case '2':
-						Tipo = 2;
-						return true;
-						break;
-					case '3':
-						Tipo = 3;
-						return true;
-						break;
-					default:
-						Tipo = 10;
-						Serial.println("El envase no pertene a uno de los 3");
-						return true;
-						break;
-					}
-					if (Tipo != 10)
-					{
-						Serial.print("Tipo: ");
-						Serial.println(TIPO_ENVASE);
-					}
-				}
-				if(!digitalRead(PIN_ENVASADO)) //Revisar si el envase sigue en el puesto.
-				{
-					MRECONOCIMIENTO_ENVASE(0);
-					Serial.println("Se retiro el envase.");
-					return false;
-				}	
+				Serial.print("Tipo de envase seleccionado: ");
+				Serial.println(Tipo);
+				return false;
+				initCeldad(100);
+			}
+			else
+			{
+				Serial.print("Error de reconocimiento.");
+				return true;
 			}
 		}
-		return true;
+		else
+			return true;
 	}
 	else
 	{
 		if ((getEstado() == 2) || (getEstado() == 8) || (getEstado() == 6))
-			Serial.println("El envase se ha retirado");
+		{
+			Serial.print("Se ha retirado");
+			MRECONOCIMIENTO_ENVASE(0);
+		}
 		return false;
 	}
 }
@@ -250,6 +212,7 @@ bool revisarLLenado()
 // Detiene el llenado del envase.
 float stopLllenadoEnvase()
 {
+	stopLllenadoEnvase();
 	// Programa para detención del llenado del envase.
 	Serial.println("El envase se ha llenado con exito");
 	return 10;
@@ -260,14 +223,44 @@ float stopLllenadoEnvase()
 // Activa la alarma correspondiente al evento que suceda.
 void alarma(short type, bool state)
 {
-	if(state)escribirLcd<String>("!ALARMA!", 0,0, true);
-	if(state)escribirLcd<short>(type, 1,0);
-	if(state)delay(DELAY_EJE);
-	digitalWrite(ALARMA, state);
+	if (state)
+	{
+		switch (type)
+		{
+		case 0:
+			Alertas.S0();
+			break;
+		case 1:
+			Alertas.S1();
+			break;
+		case 2:
+			Alertas.S2();
+			break;
+		case 3:
+			Alertas.S3();
+			break;
+		case 4:
+			Alertas.S4();
+			break;
+		case 5:
+			Alertas.S5();
+			break;
+		case 7:
+			Alertas.S6();
+			break;
+		default:
+			mostrarMensaje = false;
+			break;
+		}
+	}
+	else
+	{
+		Alertas.Desactivar();
+	}
 }
 
 // Inizialiar el sistema de Alarma
 void initAlarma()
 {
-	pinMode(ALARMA, OUTPUT);
+	setupPantalla();
 }

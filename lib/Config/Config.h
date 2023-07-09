@@ -15,8 +15,8 @@
 
 /***************** MANEJO DE BITS SOBRE LOS ESTADOS DE ENTRADA *********************/
 
-#define PORTCONMUT      8 //Pin reservado exclusivamente para el conmutador en Arduino.
-#define PIN_AVR         0 //Pin reservado exclusivamente para el conmutador.
+#define PORTCONMUT      12 //Pin reservado exclusivamente para el conmutador en Arduino.
+#define PIN_AVR         6 //Pin reservado exclusivamente para el conmutador.
 #define CONMUTADOR      ((*((volatile uint8_t*)_SFR_MEM_ADDR(PINB)) & (1 << PIN_AVR)) >> PIN_AVR)
 
 /**
@@ -36,7 +36,7 @@ typedef struct
     unsigned char bit7:1; //N/A
 }regEntrada;
 
-#define REGENTRADAS             ((volatile unsigned char*)(RAMEND + 31)) 
+#define REGENTRADAS             ((volatile unsigned char*)(RAMEND + 1)) 
 
 //Lectura de los valores del reg entrada:
 #define SENSAR_TOLVA            (((volatile regEntrada*)REGENTRADAS)->bit1)
@@ -137,23 +137,26 @@ inline volatile unsigned char getRegEntrada() {return *REGENTRADAS;}
 
 /////////////////////////LIBRERIA CON ARDUINO//////////////////////////////
 #include <Arduino.h>
-#include <LiquidCrystal.h>
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
 
 //CONFIGURACIÓN DEL ARDUINO:
 #define VELOCIDA_TX     9600 //Velocidad Baudrate de trasmición.
 #define NFILAS          5 //Número de datos tomados.
+
+extern volatile unsigned short mostrarMensaje;
 
 /*********************FUNCIONES DE IMPRECIÓN EN LCD **************************/
 //Inicializar LCD
 void setLCD();
 
 //Obtener LCD.
-LiquidCrystal &getLcd();
+LiquidCrystal_I2C  &getLcd();
 
 //Escribir en la LCD:
 template<typename T> void escribirLcd(const T estado, short fila, short columna, bool limpiar = false)
 {
-    LiquidCrystal lcd = getLcd();
+    LiquidCrystal_I2C lcd = getLcd();
     if(limpiar)lcd.clear();
     lcd.setCursor(columna,fila);
     lcd.print(estado);

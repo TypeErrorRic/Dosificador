@@ -28,7 +28,7 @@ void setup()
   initRegresionCuadratica();
   initAlarma();
   // Mensaje de finalización de configuración.
-  Serial.println("Listo");
+  /*
   unsigned long time = millis();
   while (1)
   {
@@ -39,11 +39,13 @@ void setup()
     }
     confirmarEnvase(1000);
   }
+  */
 }
 
 /**
  * @brief Bucle incial de ejecución.
  */
+
 void loop()
 {
   switch (Modo_Configuracion())
@@ -68,6 +70,8 @@ void loop()
     break;
   }
 }
+
+
 /**
  * @attention Cualquier inquietud informar al propietario del código.
  */

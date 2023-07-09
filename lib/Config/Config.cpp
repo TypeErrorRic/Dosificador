@@ -3,34 +3,46 @@
 
 /********************* IMPLEMENTACIÓN DE IMPRECIÓN EN LCD **************************/
 
-LiquidCrystal lcd(7,6,5,4,3,2);
+volatile unsigned short mostrarMensaje = 0;
+
+LiquidCrystal_I2C  Lcd(0x27,16,2);
 
 void setLCD()
 {
-    lcd.begin(16,2);
-    lcd.setCursor(0, 0);
-    lcd.print("Ready");
-}
-static void escribirEstado(short estado)
-{
-  lcd.clear();
-  lcd.setCursor(0,0);
-  lcd.print("Estado:");
-  lcd.print(estado);
-  lcd.setCursor(11, 0);
-  lcd.print("E1:");
-  lcd.print(*(NUM_ENVASES[*NUM_CICLO_FINAL])[0]);
-  lcd.setCursor(0, 1);
-  lcd.print("E2:");
-  lcd.print(*(NUM_ENVASES[*NUM_CICLO_FINAL])[1]);
-  lcd.setCursor(11,1);
-  lcd.print("E3:");
-  lcd.print(*(NUM_ENVASES[*NUM_CICLO_FINAL])[2]);
+    Wire.begin();
+    Lcd.begin(16,2);
+    Lcd.backlight();
+    Lcd.setCursor(0, 0);
+    Lcd.print("Ready");
 }
 
-LiquidCrystal &getLcd()
+static void escribirEstado(short estado, void (*alarma)(short, bool), bool& realizar)
 {
-  return lcd;
+    if (!mostrarMensaje)
+    {
+      Lcd.clear();
+      Lcd.setCursor(0, 0);
+      Lcd.print("Estado:");
+      Lcd.print(estado);
+      Lcd.setCursor(11, 0);
+      Lcd.print("E1:");
+      Lcd.print(*(NUM_ENVASES[*NUM_CICLO_FINAL])[0]);
+      Lcd.setCursor(0, 1);
+      Lcd.print("E2:");
+      Lcd.print(*(NUM_ENVASES[*NUM_CICLO_FINAL])[1]);
+      Lcd.setCursor(11, 1);
+      Lcd.print("E3:");
+      Lcd.print(*(NUM_ENVASES[*NUM_CICLO_FINAL])[2]);
+    }
+    else
+    {
+      alarma(estado, realizar);
+    }
+}
+
+LiquidCrystal_I2C  &getLcd()
+{
+  return Lcd;
 }
 
 /********************* IMPLEMENTACIÓN DE MODO OPERACIÓN **************************/
@@ -250,6 +262,7 @@ void EjecucionMemoria()
 
 static short Estado = 0; // Número de estados.
 static short tipo = 0;   // Tipo de Envase.
+static bool Alert = false;
 
 // Revision de las diferentes entradas del sistema.
 void RevisionSensoresInit()
@@ -265,7 +278,7 @@ void Revision_variables(bool(*revisarTolva)(void), void(*llenarTolva)(void),
   switch (Estado)
   {
   case 0:
-    alerta(0, false);
+    Alert = true;
     if(crash == false)
     {
       ++(PESO[*NUM_CICLO_FINAL] = 0);
@@ -279,7 +292,6 @@ void Revision_variables(bool(*revisarTolva)(void), void(*llenarTolva)(void),
     break;
   case 2: // Revisa si se ha quitado el envase de la zona de envasado.
     if(!revisarEnvase(tipo)) {MRECONOCIMIENTO_ENVASE(0); MCICLO_LLENADO(0);}
-    alerta(1, true);
     break;
   case 3: // Revisa si la tolva dosificadora tiene suficiente material para realizar un llenado.
     if(revisarTolva()) {MSENSORTOLVA(1);}
@@ -298,7 +310,6 @@ void Revision_variables(bool(*revisarTolva)(void), void(*llenarTolva)(void),
     break;
   case 6: // Revisa si el envase no reconocido se ha quitado de la zona de envasado.
     if(!revisarEnvase(tipo)) {MRECONOCIMIENTO_ENVASE(0)};
-    alerta(2, true);
     break;
   case 7: // Revisa si el envase se ha llenado correctamente.
     if(!revisarEnvase(tipo)) {MRECONOCIMIENTO_ENVASE(0)};
@@ -306,7 +317,6 @@ void Revision_variables(bool(*revisarTolva)(void), void(*llenarTolva)(void),
     break;
   case 8: // Revisa si se ha quitado el envase reconocido pero con material del ciclo de envasado.
     if(!revisarEnvase(tipo)) {MRECONOCIMIENTO_ENVASE(0); MCICLO_LLENADO(0);}
-    alerta(3, true);
   default:
     break;
   }
@@ -338,7 +348,7 @@ void flujo_ejecucion_programa(bool(*revisarTolva)(void), void(*llenarTolva)(void
     if (CONMUTADOR)
     {
       if (RECONOCIMIENTO_ENVASE) Estado = 2;
-      else {Estado = 3; alerta(1, false);}
+      else {Estado = 3; Alert = false;}
     }
     else Estado = 0;
     break;
@@ -375,7 +385,7 @@ void flujo_ejecucion_programa(bool(*revisarTolva)(void), void(*llenarTolva)(void
     if (CONMUTADOR)
     {
       if (RECONOCIMIENTO_ENVASE) Estado = 6; // Revisar si el envase se quito. Polling
-      else {Estado = 5; alerta(2, false);};
+      else {Estado = 5; Alert = false;};
     }
     else Estado = 0;
     break;
@@ -409,14 +419,14 @@ void flujo_ejecucion_programa(bool(*revisarTolva)(void), void(*llenarTolva)(void
     if (CONMUTADOR)
     {
       if (RECONOCIMIENTO_ENVASE) Estado = 8;
-      else {Estado = 5; alerta(3, false);};
+      else {Estado = 5; Alert = false;};
     }
     else Estado = 0;
     break;
   default:
     break;
   }
-  escribirEstado(Estado);
+  escribirEstado(Estado, alerta, Alert);
   //Tiempo de ejecución:
   delay(DELAY_EJE);
 }

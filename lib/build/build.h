@@ -16,6 +16,7 @@
 #include <Regresion_Cuadratica.h> //Desarrollado Por Ricardo Pabón Serna.
 #include <Derivada.h> //Desarollado por Ricardo Pabón Serna.
 #include <Celdad_Carga.h> //Desarrollado por Ricardo Pabón Serna.
+#include <Alerta.h> //Desarrollado por Dilxon Jhon Carlos Gaviria Ruiz y Carlos Pizarro.
 
 #define TIEMPO_REVISION     500 //El tiempo en que se va a efectuar la revisión de los sensor.
 
@@ -64,8 +65,6 @@ bool revisarLLenado();  //Verfica el llenado del envase.
 float stopLllenadoEnvase(); //Detiene el llenado del envase.
 
 /********************* FUNCIONES PARA SISTEMA DE ALERTA ************************/
-
-#define ALARMA          12 //Pin de la Alarma.
 
 void initAlarma(); //Inizialiar el sistema de Alarma
 void alarma(short type, bool state); //Activa la alarma correspondiente al evento que suceda.
