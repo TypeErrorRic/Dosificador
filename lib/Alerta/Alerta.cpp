@@ -79,7 +79,7 @@ void Alerta::S2() // alerta identificacion del tipo de envase
         escribirLcd<String>("El recipiente", 0, 0);
         time_Visual = millis();
     }
-    if ((*REGENTRADAS & 0x0C) == ((1 << 2)) && ((unsigned int)DELAY_TIME_SONIDO / DIVISOR_S2_RECONOCE < (millis() - time_Alerta)))
+    if ((unsigned int)DELAY_TIME_SONIDO / DIVISOR_S2_RECONOCE < (millis() - time_Alerta))
     {
         digitalWrite(bozzer, !digitalRead(bozzer));
         time_Alerta = millis();
@@ -93,7 +93,7 @@ void Alerta::S3() // alerta de nivel de tolva
         if (Cambio)
         {
             escribirLcd<String>("Comprobando ", 0, 0, true);
-            escribirLcd<String>("nivel tolva.", 0, 1);
+            escribirLcd<String>("nivel tolva.", 1, 0);
             Cambio = false;
         }
         else
@@ -101,12 +101,12 @@ void Alerta::S3() // alerta de nivel de tolva
             if ((*REGENTRADAS & 0x02) & ~(1 << 2)) // nivel bajo o vacio tolva
             {
                 escribirLcd<String>("Nivel de tolva", 0, true);
-                escribirLcd<String>("bajo.", 5, 1);
+                escribirLcd<String>("bajo.", 1, 0);
             }
             else
             {
                 escribirLcd<String>("Nivel de tolva", 0, 0, true);
-                escribirLcd<String>("maximo.", 3, 1);
+                escribirLcd<String>("maximo.", 1, 0);
             }
             Cambio = true;
         }

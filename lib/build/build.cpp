@@ -140,6 +140,7 @@ bool stateTolva()
 // Activa la función de llenado de la Tolva dispensadora.
 void fillTolva()
 {
+	encenderMotor();
 	// Aquiva el programa:
 	Serial.println("Llenado...");
 }
@@ -147,6 +148,7 @@ void fillTolva()
 // Dectiene la Función de llenado de la Tolva dispensadora.
 void offTolva()
 {
+	apagarMotor();
 	// Aquiva el programa:
 	Serial.println("Se ha llenado la tolva Dosificadora.");
 }
@@ -277,4 +279,15 @@ void initAlarma()
 {
 	setupPantalla();
 	setupInteruptMassage();
+	pinMode(RELAYPIN, OUTPUT);
+}
+
+//Función para prender motor:
+void encenderMotor(){
+ digitalWrite(RELAYPIN, HIGH); 
+}
+
+//Función para apagar motor:
+void apagarMotor(){
+  digitalWrite(RELAYPIN,LOW);
 }
