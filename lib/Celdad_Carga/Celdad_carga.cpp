@@ -230,10 +230,10 @@ float getCeldadcargaValue()
     {
         // Deshabilitar interupciones:
         cli();
-        //Obtener el peso del dato en relación con su importancia:
-        aux += Celdad_Carga::data[((Celdad_Carga::counter - 2) % APROX_PARA_VALOR_CELDAD_CARGA)]*0.20;
-        aux += Celdad_Carga::data[((Celdad_Carga::counter - 1) % APROX_PARA_VALOR_CELDAD_CARGA)]*0.30;
-        aux += Celdad_Carga::data[((Celdad_Carga::counter) % APROX_PARA_VALOR_CELDAD_CARGA)]*0.50;
+        // Obtener el peso del dato en relación con su importancia:
+        aux += Celdad_Carga::data[((Celdad_Carga::counter - 2) % APROX_PARA_VALOR_CELDAD_CARGA)] * 0.20;
+        aux += Celdad_Carga::data[((Celdad_Carga::counter - 1) % APROX_PARA_VALOR_CELDAD_CARGA)] * 0.30;
+        aux += Celdad_Carga::data[((Celdad_Carga::counter) % APROX_PARA_VALOR_CELDAD_CARGA)] * 0.50;
         // Habilitar interupciones:
         sei();
         if (aux < 0)
@@ -295,6 +295,8 @@ static void detecionEnvase(float &tipo)
         else
             tipo = 0;
     }
+    Serial.print("Peso Envase: ");
+    Serial.println(tipo);
 }
 
 // Permirte comporbar que tipo de envase hay:
@@ -308,11 +310,11 @@ bool confirmarEnvase()
     }
     else
     {
-        //Obteneción del reconocimiento de envase rapido:
+        // Obteneción del reconocimiento de envase rapido:
         resultfinal = getCeldadcargaValue();
     }
     // Verificar si hay un envase o no:
-    if (resultfinal >= CRITERIO_ENVASE)
+    if ((resultfinal >= CRITERIO_ENVASE))
         return true;
     return false;
 }
@@ -344,18 +346,91 @@ bool reconocerEnvaseEnSitioEnvasado(short &tipo)
         // detección de envase:
         detecionEnvase(resultfinal);
     }
-    // Determinar el envase:
-    switch (definirEnvase(resultfinal))
+    if (true)
     {
-    case 0:
-        // No es ningun envase retorna false:
-        tipo = 0;
-        return false;
-        break;
-    default:
-        // Verificar que tipo de envase es:
-        tipo = definirEnvase(resultfinal);
-        break;
+        Serial.println("Entro al sensor de inducción.");
+        // Determinar el envase:
+        switch (definirEnvase(resultfinal))
+        {
+        case 0:
+            // No es ningun envase retorna false:
+            tipo = 0;
+            return false;
+            break;
+        default:
+            // Verificar que tipo de envase es:
+            tipo = definirEnvase(resultfinal);
+            break;
+        }
+        return true;
     }
-    return true;
+    return false;
+}
+
+// Verifica si ya se lleno los recipientes:
+bool verficarLlenadoCompleto()
+{
+    if (Celdad_Carga::medicion)
+    {
+        if (!digitalRead(botonCancelar))
+        {
+            Estado = 1;
+            stopMediciones();
+        }
+        Serial.println(getCeldadcargaValue());
+        switch (TIPO_ENVASE)
+        {
+        case 1:
+            if (getCeldadcargaValue() >= (ENVASE_1_PESO_COMPLETO - LLENADO_DEL_ENVASE_DESFASE))
+            {
+                Serial.println("LLeno.");
+                delay(1000);
+                return true;
+            }
+            break;
+        case 2:
+            if (getCeldadcargaValue() >= (ENVASE_2_PESO_COMPLETO - LLENADO_DEL_ENVASE_DESFASE))
+                return true;
+            break;
+        case 3:
+            if (getCeldadcargaValue() >= (ENVASE_3_PESO_COMPLETO - LLENADO_DEL_ENVASE_DESFASE))
+                return true;
+            break;
+        default:
+            break;
+        }
+    }
+    else
+    {
+        switch (TIPO_ENVASE)
+        {
+        case 1:
+            if (getaValueFull() >= (ENVASE_1_PESO_COMPLETO - LLENADO_DEL_ENVASE_DESFASE))
+                return true;
+            break;
+        case 2:
+            if (getaValueFull() >= (ENVASE_2_PESO_COMPLETO - LLENADO_DEL_ENVASE_DESFASE))
+                return true;
+            break;
+        case 3:
+            if (getaValueFull() >= (ENVASE_3_PESO_COMPLETO - LLENADO_DEL_ENVASE_DESFASE))
+                return true;
+            break;
+        default:
+            break;
+        }
+    }
+    return false;
+}
+
+bool isEnvaseIn()
+{
+    if (digitalRead(INDUCTOR))
+    {
+        return 0;
+    }
+    else
+    {
+        return 1;
+    }
 }

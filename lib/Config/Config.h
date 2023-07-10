@@ -17,7 +17,7 @@
 
 #define PORTCONMUT      12 //Pin reservado exclusivamente para el conmutador en Arduino.
 #define PIN_AVR         6 //Pin reservado exclusivamente para el conmutador.
-#define CONMUTADOR      ((*((volatile uint8_t*)_SFR_MEM_ADDR(PINB)) & (1 << PIN_AVR)) >> PIN_AVR)
+#define CONMUTADOR      !digitalRead(PORTCONMUT)//((*((volatile uint8_t*)_SFR_MEM_ADDR(PINB)) & (1 << PIN_AVR)) >> PIN_AVR)
 
 /**
 * @note La conexión del conmutador está hecha en pull_down
@@ -146,9 +146,13 @@ inline volatile unsigned char getRegEntrada() {return *REGENTRADAS;}
 
 extern volatile unsigned short mostrarMensaje;
 
+extern short Estado; // Número de estados.
+
 /*********************FUNCIONES DE IMPRECIÓN EN LCD **************************/
 //Inicializar LCD
 void setLCD();
+
+extern LiquidCrystal_I2C Lcd;
 
 //Obtener LCD.
 LiquidCrystal_I2C  &getLcd();
@@ -172,7 +176,8 @@ short Modo_Configuracion();
 // Función de flujo de control:
 void flujo_ejecucion_programa(bool(*revisarTolva)(void), void(*llenarTolva)(void), void(*ApagarTolva)(void), 
     bool(*revisarEnvase)(short &), bool(*llenado)(void), void(*doLlenado)(void),
-    float (*stopLlenado)(void), void(*alerta)(short type, bool state));
+    float (*stopLlenado)(void), void(*alerta)(short type, bool state), void (*MenuPrincipal)(bool), 
+    void (*actualizar)(void));
 
 //Función de Inicialización de registro y Memoria:
 void RevisionSensoresInit();

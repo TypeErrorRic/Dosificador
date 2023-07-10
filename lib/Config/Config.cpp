@@ -7,6 +7,8 @@ volatile unsigned char *REGENTRADAS = new unsigned char();
 
 volatile unsigned short mostrarMensaje = 0;
 
+static bool ejecutarMenu = true;
+
 //Variables para el cambio de la pantalla de la LCD:
 bool Cambio = true;
 
@@ -21,10 +23,17 @@ void setLCD()
     Lcd.print("Ready");
 }
 
-static void escribirEstado(short estado, void (*alarma)(short, bool), bool& realizar)
+static void escribirEstado(short estado, void (*alarma)(short, bool), bool& realizar, void (*MenuPrincipal)(bool))
 {
+    if(Estado == 5 && ejecutarMenu)
+    {
+      MenuPrincipal(true);
+      ejecutarMenu = false;
+    }
     if (!mostrarMensaje)
     {
+      //Apagar alarmas
+      digitalWrite(7, LOW);
       Lcd.clear();
       Lcd.setCursor(0, 0);
       Lcd.print("Estado:");
@@ -63,12 +72,12 @@ static bool Modo_seleccion()
 {
     if(*VARIABLE_REST) return true;
     unsigned int time = millis();
-    short aux = 1;
+    bool aux = true;
     while (millis() - time <= TIEMPO_ESPERA)
     {
         if (CONMUTADOR == aux)
         {
-            aux = 0;
+            aux = false;
             count++;
         }
         if (count >= 6)
@@ -106,7 +115,7 @@ short Modo_Configuracion()
         if ((millis() - timer) > DELAY_MESSAGE)
         {
           escribirLcd<String>("1. Done", 0, 0, true);
-          escribirLcd<String>("2. Regresion", 1, 0);
+          escribirLcd<String>("2. Config", 1, 0);
           timer = millis();
           count++;
         }
@@ -115,7 +124,6 @@ short Modo_Configuracion()
         if ((millis() - timer) > DELAY_MESSAGE)
         {
           escribirLcd<String>("3. Memoria.", 0, 0, true);
-          escribirLcd<String>("4. Derivada.", 1, 0);
           timer = millis();
           count++;
         }
@@ -138,10 +146,6 @@ short Modo_Configuracion()
           break;
         case '3':
           MODO_OPERACION = 2;
-          crash = false;
-          break;
-        case '4':
-          MODO_OPERACION = 3;
           crash = false;
           break;
         default:
@@ -218,7 +222,7 @@ void EjecucionMemoria()
       if ((millis() - timer) > DELAY_MESSAGE)
       {
         escribirLcd<String>("1. Datos", 0, 0, true);
-        escribirLcd<String>("2. Impresion T", 1, 0);
+        escribirLcd<String>("2. Reset. Celda", 1, 0);
         timer = millis();
         count++;
       }
@@ -244,8 +248,12 @@ void EjecucionMemoria()
         Imprimir_dato();
         break;
       case '2':
-        for(unsigned short i=0; i< MODO_OPERACION.size(); i++) 
-          {Serial.print(i); Serial.print(". "); Serial.println(MODO_OPERACION.M_DDR(i));}
+        limpirSitioEnvasado();
+        VARIABLE_REST = 1;
+        crash = true;
+        //Activar para Impresión T.
+        //for(unsigned short i=0; i< MODO_OPERACION.size(); i++) 
+          //{Serial.print(i); Serial.print(". "); Serial.println(MODO_OPERACION.M_DDR(i));}
         break;
       case '3':
         LIMPIAR();
@@ -265,7 +273,7 @@ void EjecucionMemoria()
 
 /*********** IMPLEMENTACIÓN DE FUNCIONES PARA EL MANEJO DEL FLUJO DEL PROGRAMA ************/
 
-static short Estado = 0; // Número de estados.
+short Estado = 0; // Número de estados.
 static short tipo = 0;   // Tipo de Envase.
 static bool Alert = false;
 
@@ -303,6 +311,7 @@ void Revision_variables(bool(*revisarTolva)(void), void(*llenarTolva)(void),
   case 3: // Revisa si la tolva dosificadora tiene suficiente material para realizar un llenado.
     if(revisarTolva()) {MSENSORTOLVA(1);}
     else MSENSORTOLVA(0) {;}
+    Cambio = false;
     break;
   case 4: // Revisa si la tolva dosificadora ya se ha llenado.
     llenarTolva();
@@ -332,8 +341,10 @@ void Revision_variables(bool(*revisarTolva)(void), void(*llenarTolva)(void),
 // Flujo de Ejcución del sistema.
 void flujo_ejecucion_programa(bool(*revisarTolva)(void), void(*llenarTolva)(void), void(*ApagarTolva)(void), 
                               bool(*revisarEnvase)(short &), bool(*llenado)(void), void(*doLlenado)(void),
-                              float (*stopLlenado)(void), void(*alerta)(short type, bool state))
+                              float (*stopLlenado)(void), void(*alerta)(short type, bool state), 
+                              void (*MenuPrincipal)(bool), void (*actualizar)(void))
 {
+  actualizar();
   //Revision de todos los sensores:
   Revision_variables(revisarTolva, llenarTolva, revisarEnvase, llenado, alerta);
   //Flujo del programa:
@@ -342,12 +353,13 @@ void flujo_ejecucion_programa(bool(*revisarTolva)(void), void(*llenarTolva)(void
   case 0: // Encender Conmutador
     if (CONMUTADOR) Estado = 1;
     else Estado = 0;
+    ejecutarMenu = true;
     break;
   case 1: // ¿Hay un envase?
     if (CONMUTADOR)
     {
       //Mostrar que se finalizo el mensaje:
-      escribirEstado(Estado, alerta, Alert);
+      escribirEstado(Estado, alerta, Alert, MenuPrincipal);
       //Reconocer a que estado se va:
       if (RECONOCIMIENTO_ENVASE) Estado = 2;
       else Estado = 3;
@@ -364,6 +376,9 @@ void flujo_ejecucion_programa(bool(*revisarTolva)(void), void(*llenarTolva)(void
     else Estado = 0;
     break;
   case 3: // ¿Cuál es el estado de la tolva?
+    //Mostrar que se finalizo el mensaje:
+    escribirEstado(Estado, alerta, Alert, MenuPrincipal);
+    //Determinar que estado va:
     if (revisarTolva()) {Estado = 5; if(!SENSAR_TOLVA) {MSENSORTOLVA(1);}}
     else Estado = 4;
     break;
@@ -437,7 +452,7 @@ void flujo_ejecucion_programa(bool(*revisarTolva)(void), void(*llenarTolva)(void
   default:
     break;
   }
-  escribirEstado(Estado, alerta, Alert);
+  escribirEstado(Estado, alerta, Alert, MenuPrincipal);
   //Tiempo de ejecución:
   delay(DELAY_EJE);
 }

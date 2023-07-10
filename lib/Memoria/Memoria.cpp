@@ -121,7 +121,6 @@ Memoria<float, Sumar<float>> SCALE;
 void LIMPIAR()
 {
 	NUM_ENVASES.Limpiar();
-	++(FACTOR_CELDADCARGA = 0);
 	++(X2 = 0);
 	++(X = 0);
 	++(A = 0);
@@ -130,12 +129,17 @@ void LIMPIAR()
 		++(PESO[i] = 0);
 	}
 	++(NUM_CICLO_FINAL = 5);
-	++(SCALE = 0);
 }
 
 void LIMPIAR_DEFAULT()
 {
 	for(unsigned short i = 0; i < PESO.size(); i++) {(PESO.Ep()).write(i, 0xff); }
+}
+
+void limpirSitioEnvasado()
+{
+	++(FACTOR_CELDADCARGA = 17456);
+	++(SCALE = -448.59);
 }
 
 void Dirreciones()

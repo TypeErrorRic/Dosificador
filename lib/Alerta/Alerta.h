@@ -41,15 +41,18 @@ public:
 extern Alerta Alertas;
 
 //Mostrar mensajes sobre el ciclo de envasado:
-#define botonCancelar       8
-#define botonArriba         9
-#define botonSeleccionar    10
-#define botonAbajo          11
-#define interruptorMaestro  12
+#define botonCancelar       22
+#define botonArriba         24
+#define botonSeleccionar    26
+#define botonAbajo          30
+#define interruptorMaestro  32
 
 void setupPantalla();
 void MostrarPantalla(bool isEnvasadoEnable);
 void setupInteruptMassage();
 void isr_handler();
+
+extern int pesos[3];
+extern unsigned short velocidadDeLlenado;
 
 #endif

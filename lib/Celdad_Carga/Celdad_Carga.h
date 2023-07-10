@@ -23,35 +23,44 @@
 #define F_CPU 16000000ul
 #endif
 
-#define SIZE_ARREGLO 5
+#define SIZE_ARREGLO 5 //Media de datos rapida.
 
 #define APROX_PARA_VALOR_CELDAD_CARGA 3 // Número de datos tomados por la celdad de carga.
 
 #define CRITERIO_ENVASE 10 // Criterio minimo para identificar un envase.
 
-#define PESO_COMPROBACION 500.0 //Peso de confirmación
+#define PESO_COMPROBACION 500.0 // Peso de confirmación
 
-//Lista de pesos de de medición:
-#define IMPORTANCIA_1   0.20
-#define IMPORTANCIA_2   0.30
-#define IMPORTANCIA_3   0.50
+// Lista de pesos de de medición:
+#define IMPORTANCIA_1 0.20
+#define IMPORTANCIA_2 0.30
+#define IMPORTANCIA_3 0.50
+
+#define INDUCTOR 11 //Pin del inductor.
+
+// Hay un envase metalico en el sitio de envasado.
+bool isEnvaseIn();
 
 // Clase para acceder a las funciones de HX711 por medio de Asociación.
 class Celdad_Carga
 {
 private:
-    unsigned int time; // Tiempo entre toma de datos.
-    static bool configHx711; //Config HX711;
+    unsigned int time;       // Tiempo entre toma de datos.
+    static bool configHx711; // Config HX711;
 
 public:
     static bool medicion;                                       // Permite definir si se está realizando la medición
     static HX711 celdadCarga;                                   // Clase con las operaciones de obtención de pesos.
     static volatile unsigned int counter;                       // Contador de iteraciones
     static volatile double data[APROX_PARA_VALOR_CELDAD_CARGA]; // Valores de la regresión cuadratica.
-    Celdad_Carga() { celdadCarga.begin(DOUT, CLOCK); }          // Inicializar HX711.
-    void stop();                                                // Detiene la toma de datos.
-    void begin();                                               // Inicia la toma de datos.
-    void configTime(unsigned int num);                          // Configura el tiempo entre toma de datos
+    Celdad_Carga()
+    {
+        celdadCarga.begin(DOUT, CLOCK);
+        pinMode(INDUCTOR, INPUT);
+    }                                  // Inicializar HX711.
+    void stop();                       // Detiene la toma de datos.
+    void begin();                      // Inicia la toma de datos.
+    void configTime(unsigned int num); // Configura el tiempo entre toma de datos
 };
 
 // Funciones para cargar los valores de la celdad de carga en la heap.
@@ -68,7 +77,7 @@ bool confirmarEnvase();
 // Determinar el envase que hay en el sitio de envasado.
 int tipoEnvase();
 
-//Banderas de control del flujo de valores.
+// Banderas de control del flujo de valores.
 typedef struct
 {
     volatile bool flagCaptureMedicion;
@@ -78,7 +87,7 @@ typedef struct
 // Captura del dato:
 void Captura_dato();
 
-//Estrcutura de datos que se obtienen de la zona de envasado.
+// Estrcutura de datos que se obtienen de la zona de envasado.
 typedef struct
 {
     float medicionHx;
@@ -89,18 +98,31 @@ typedef struct
 
 extern pvResultsMedicion Medidas;
 
-//Medidas de reconocimiento de los pesos de los envases:
-#define ENVASE_1_PESO 26.70
-#define ENVASE_2_PESO 32.03
-#define ENVASE_3_PESO 39.60
+// Medidas de reconocimiento de los pesos de los envases:
+#define ENVASE_1_PESO 31
+#define ENVASE_2_PESO 40
+#define ENVASE_3_PESO 60
 
-//Rango de redondeo de los valores:
+// Rango de redondeo de los valores:
 #define VALOR_DESFASE 2
-//Porcentaje de error admitido entre 2 medidas
-#define VALOR_ERROR   0.05
-//Porcentaje de error admitido entre 2 medidas cuando la última medida es mayor al umbral de que hay un envase.
-#define VALOR_ERROR_PASAR   0.25
+// Porcentaje de error admitido entre 2 medidas
+#define VALOR_ERROR 5
+// Porcentaje de error admitido entre 2 medidas cuando la última medida es mayor al umbral de que hay un envase.
+#define VALOR_ERROR_PASAR 5
 
 bool reconocerEnvaseEnSitioEnvasado(short &tipo);
+
+#include <Alerta.h>
+
+// Reconocimiento del envase
+
+#define ENVASE_1_PESO_COMPLETO pesos[0]
+#define ENVASE_2_PESO_COMPLETO pesos[1]
+#define ENVASE_3_PESO_COMPLETO pesos[2]
+
+#define LLENADO_DEL_ENVASE_DESFASE 5
+
+// Función para verificar si hay u envase en el sitio de envasado:
+bool verficarLlenadoCompleto();
 
 #endif

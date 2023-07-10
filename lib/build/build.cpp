@@ -1,7 +1,7 @@
 #include <Build.h> //Desarrollado por Ricardo Pabón Serna.
 #include <Memoria.h>
 // Archivo de cabecera.
-//#include "C:\Users\ricardo\Desktop\Taller_Ing_II\include\Selecion_datos.h"
+// #include "C:\Users\ricardo\Desktop\Taller_Ing_II\include\Selecion_datos.h"
 
 /************ IMPLEMETNACIÓN PARA EL CALCULO DE LA REGRESION CUADRATICA **************/
 
@@ -25,61 +25,55 @@ void initRegresionCuadratica()
 	Matriz.reset();
 }
 
-short puntos_busquedad[] = {20, 40, 60, 80, 99}; //Posiciones buscadas en porcentaje
+short puntos_busquedad[] = {1, 2, 3, 4, 5}; // Posiciones buscadas en porcentaje
+static int contador_num{0};					// Variable contadora.
 
-//Función de emedición de valores aproximados
-static bool aproxFunction(int valor, short &index)
-{
-	if(((index - DISTANCIA_MINIMA) < valor) && (valor < (DISTANCIA_MINIMA + index))) return true;
-	else return false;
-}
+// Variables para cualcular el promedio de la derivada:
+static float derivada = 0;
+static float auxAlmacenarDerivada = 0;
+static unsigned short contador = 0;
 
-//Función para capturar el ángulo de giro del sistema de apertura de la tolva dosificadora:
-static int captureAngle()
-{
-	return (int)((float)(analogRead(PIN_PESO_ENTRADA)/(float)1023)*100);
-}
+#define NUM_MEDIDAS_MEDIA_DERIVADA 3
 
-//Función para realizar la captura de datos para realizar la regresión cuadratica usnado promedio
+// Función para realizar la captura de datos para realizar la regresión cuadratica usnado promedio
 static void captureModulate(float &x, int (*y)(void), float &z, bool get_realizar)
 {
-	float aux = 0;
-	unsigned long count = 0;
-	while(1)
+	angulo(puntos_busquedad[1]);
+	// Iniciar toma del dato:
+	initCeldad(50);
+	fillTolva();
+	while (1)
 	{
-		if (aproxFunction(captureAngle(), puntos_busquedad[count % num_elements]) && get_realizar)
+		Captura_dato();
+		if ((Medidas.resultDev != auxAlmacenarDerivada) && (contador <= NUM_MEDIDAS_MEDIA_DERIVADA))
 		{
-			for(short i = 0; i < 10; i++) aux += y();
-			aux /= 10;
-			x = puntos_busquedad[count % num_elements];
-			z = aux;
-			for(short i=0; i< num_elements; i++) 
-			{
-				if(puntos_busquedad[i] != puntos_busquedad[count % num_elements]) puntos_busquedad[i] = puntos_busquedad[i];
-				else puntos_busquedad[i] = -1; //Nunca el adc va a tomar valores negativos.
-			}
+			derivada += Medidas.resultDev;
+			auxAlmacenarDerivada = Medidas.resultDev;
+			contador++;
+		}
+		else if (contador > NUM_MEDIDAS_MEDIA_DERIVADA)
+		{
+			contador = 0;
 			break;
 		}
-		count += 1;
-		delay(50); //Tiempo de espara para el cambio de evaluación del dato.
 	}
+	// Detener llenado
+	offTolva();
+	stopLllenadoEnvase();
+	// Obtener medidas:
+	z = (derivada / NUM_MEDIDAS_MEDIA_DERIVADA);
+	x = puntos_busquedad[contador_num];
 }
-
-//Función porvisional
-int Calibracion()
-{
-	return analogRead(PIN_PESO_ENTRADA);
-};
 
 // Realización de la Obtención de los datos Para la Regresión Cuadratica:
 void doRegresionCuadratica()
 {
-	int contador_num{0};
+	contador_num = 0;
 	// Bucle principal de toma de datos:
 	do
 	{
-		//Serial_events(Valores_Sensores.x[contador_num], Valores_Sensores.y[contador_num], Matriz.get_Realizar());
-		captureModulate(Valores_Sensores.x[contador_num], Calibracion, Valores_Sensores.y[contador_num], Matriz.get_Realizar());
+		// Serial_events(Valores_Sensores.x[contador_num], Valores_Sensores.y[contador_num], Matriz.get_Realizar());
+		captureModulate(Valores_Sensores.x[contador_num], nullptr, Valores_Sensores.y[contador_num], Matriz.get_Realizar());
 		contador_num++;
 		// Si se ha realizado la toma de valores con un patron incapaz de ser acomodados en una curva cuadratica. Lazara error.
 		if (Matriz.get_Realizar())
@@ -91,6 +85,7 @@ void doRegresionCuadratica()
 			Serial.println(Valores_Sensores.y[contador_num - 1]);
 		}
 	} while (Matriz.Update(Valores_Sensores.x[contador_num - 1], Valores_Sensores.y[contador_num - 1]));
+	retornarCerrado(6);
 	// Si se ha realizado la toma de valores con un patron incapaz de ser acomodados en una curva cuadratica. Lazara error.
 	if (Matriz.get_Realizar())
 	{
@@ -100,26 +95,33 @@ void doRegresionCuadratica()
 	++(A = Matriz.Get_valor_a());
 	++(X = Matriz.Get_valor_x1());
 	++(X2 = Matriz.Get_valor_x2());
+	escribirLcd<String>("X2: ", 0, 6, true);
+	escribirLcd<float>(*X2, 0, 6);
+	escribirLcd<String>("X: ", 0, 9);
+	escribirLcd<float>(*X, 0, 13);
+	escribirLcd<String>("A: ", 1, 0);
+	escribirLcd<float>(*A, 1, 5);
+	delay(4000);
 }
 
 /************ IMPLEMETNACIÓN PARA EL CALCULO DE LA DERIVADA **************/
 
-//Función de interpretación del convertidor analogico.
+// Función de interpretación del convertidor analogico.
 static float Medir_Peso()
 {
-	return ((float)(analogRead(PIN_PESO_ENTRADA)/(float)1023)*1000);
+	return ((float)(analogRead(PIN_PESO_ENTRADA) / (float)1023) * 1000);
 };
 
-//Realizar la derivada.
+// Realizar la derivada.
 void doDerivada()
 {
 	getLcd().clear();
-	while(1) 
+	while (1)
 	{
-		escribirLcd<String>("Peso:", 0,0);
+		escribirLcd<String>("Peso:", 0, 0);
 		escribirLcd<float>(Medir_Peso(), 0, 7);
 		escribirLcd<String>(" G", 0, 13);
-		escribirLcd<String>("Dervida:", 1,0);
+		escribirLcd<String>("Dervida:", 1, 0);
 		getLcd().print(Derivada(Medir_Peso(), Medir_Peso, 500));
 	}
 }
@@ -128,13 +130,21 @@ void doDerivada()
 // Devuelve el estado de la Tolva dispensadora.
 bool stateTolva()
 {
-	if (digitalRead(PIN_SENSOR_TOLVA))
+	switch (estadoCantidadTolva())
 	{
-		delay(TIEMPO_REVISION);
-		return digitalRead(PIN_SENSOR_TOLVA);
-	}
-	else
+	case 0:
+		Serial.println("Vaicia.");
 		return false;
+	case 1:
+		Serial.println("Llena");
+		return true;
+	case 2:
+		Serial.println("Llena 2");
+		return true;
+	default:
+		break;
+	}
+	return false;
 }
 
 // Activa la función de llenado de la Tolva dispensadora.
@@ -169,26 +179,27 @@ bool revisarEnvase(short &Tipo)
 	// Programa de reconocimiento de envase:
 	if (RECONOCIMIENTO_ENVASE)
 	{
-		//Reconoce el tipo de envase:
+		// Reconoce el tipo de envase:
 		if (getEstado() == 5)
 		{
-			if(!reconocerEnvaseEnSitioEnvasado(Tipo))
+			if (reconocerEnvaseEnSitioEnvasado(Tipo))
 			{
 				Serial.print("Tipo de envase seleccionado: ");
 				Serial.println(Tipo);
-				return false;
 				initCeldad(100);
+				return true;
 			}
 			else
 			{
-				Serial.print("Error de reconocimiento.");
+				Tipo = 10;
+				Serial.println("Error de reconocimiento.");
 				return true;
 			}
 		}
 		else
 		{
 			Serial.println("Hay un envase.");
-			return true;	
+			return true;
 		}
 	}
 	else
@@ -207,6 +218,8 @@ bool revisarEnvase(short &Tipo)
 // Activa el llenado del envase.
 void llenandoEnvase()
 {
+	initCeldad(100);
+	angulo(velocidadDeLlenado);
 	// Aqui va el programa de llenado.
 	Serial.println("Llenando envase.");
 }
@@ -215,19 +228,14 @@ void llenandoEnvase()
 bool revisarLLenado()
 {
 	// Programa para revisar se lleno el envase.
-	if (digitalRead(PIN_CICLO_LLENADO))
-	{
-		delay(TIEMPO_REVISION);
-		return digitalRead(PIN_CICLO_LLENADO);
-	}
-	else
-		return false;
+	return verficarLlenadoCompleto();
 }
 
 // Detiene el llenado del envase.
 float stopLllenadoEnvase()
 {
 	stopLllenadoEnvase();
+	retornarCerrado(velocidadDeLlenado);
 	// Programa para detención del llenado del envase.
 	Serial.println("El envase se ha llenado con exito");
 	return 10;
@@ -260,9 +268,19 @@ void alarma(short type, bool state)
 		case 5:
 			Alertas.S5();
 			break;
-		case 7:
+		case 6:
 			Alertas.S6();
+		case 7:
+			getCeldadcargaValue();
+			escribirLcd<String>("Peso: ", 0, 0, true);
+			escribirLcd<float>(Medidas.medicionHx, 0, 8);
+			escribirLcd<String>("E", 0, 14);
+			escribirLcd<int>(TIPO_ENVASE, 0, 15);
+			escribirLcd<String>("Derivada: ", 1, 0);
+			escribirLcd<float>(Medidas.resultDev, 1, 12);
 			break;
+		case 8:
+			Alertas.S6();
 		default:
 			mostrarMensaje = false;
 			break;
@@ -282,12 +300,298 @@ void initAlarma()
 	pinMode(RELAYPIN, OUTPUT);
 }
 
-//Función para prender motor:
-void encenderMotor(){
- digitalWrite(RELAYPIN, HIGH); 
+// Función para prender motor:
+void encenderMotor()
+{
+	digitalWrite(RELAYPIN, HIGH);
 }
 
-//Función para apagar motor:
-void apagarMotor(){
-  digitalWrite(RELAYPIN,LOW);
+// Función para apagar motor:
+void apagarMotor()
+{
+	digitalWrite(RELAYPIN, LOW);
+}
+
+/************************ CONFIGURACIÓN DEL SISTEMA	**********************/
+static short counterChangeMessage = 0;
+static unsigned long timer = 0;
+
+#define DELAY_MESSAGE 3000UL
+
+static bool crash = false;
+
+void ConfigSistem()
+{
+	crash = false;
+	while (!crash)
+	{
+		switch (counterChangeMessage)
+		{
+		case 0:
+			if ((millis() - timer) > DELAY_MESSAGE)
+			{
+				escribirLcd<String>("Configuracion", 0, 0, true);
+				escribirLcd<String>("Sistema.", 1, 0);
+				timer = millis();
+				counterChangeMessage++;
+			}
+			break;
+		case 1:
+			if ((millis() - timer) > DELAY_MESSAGE)
+			{
+				escribirLcd<String>("1. Regresion.", 0, 0, true);
+				escribirLcd<String>("2. Conf. Celda", 1, 0);
+				timer = millis();
+				counterChangeMessage++;
+			}
+			break;
+		case 2:
+			if ((millis() - timer) > DELAY_MESSAGE)
+			{
+				escribirLcd<String>("3. Salir.", 0, 0, true);
+				timer = millis();
+				counterChangeMessage++;
+			}
+			break;
+		default:
+			counterChangeMessage = 0;
+			break;
+		}
+		if ((Serial.available() > 0) && !crash)
+		{
+			switch ((char)Serial.read())
+			{
+			case '1':
+				doRegresionCuadratica();
+				crash = true;
+				break;
+			case '2':
+				FACTOR_CELDADCARGA = 0;
+				SCALE = 0;
+				initCeldad(100);
+				stopMediciones();
+				Serial.print("Factor de Celdad: ");
+				Serial.println(*FACTOR_CELDADCARGA);
+				Serial.print("Scala: ");
+				Serial.println(*SCALE);
+				crash = true;
+				break;
+			case '3':
+				crash = true;
+			default:
+				break;
+			}
+		}
+	}
+}
+
+static int cny1 = A14;
+static int cny2 = A15;
+static int val1 = 0;
+static int val2 = 0;
+
+static int lectura1 = 0; // Lectura Cny70 1
+static int lectura2 = 0; // Lecutra Cny70 2
+
+static int auxSuma1 = 0;
+static int auxSuma2 = 0;
+static int auxConteo = 0;
+
+static unsigned long currentMillisCny = 0;
+static unsigned long previousMillisCny = 0;
+
+void setupCny()
+{
+	// Serial.begin(9600);
+	pinMode(cny1, INPUT);
+	pinMode(cny2, INPUT);
+}
+
+int estadoCantidadTolva()
+{
+	///////////
+	// 0:=Tolva requiere llenado
+	// 1:=Tolva llena
+	// 2:=Tolva no requiera
+	// 3:=Error
+	while (currentMillisCny - previousMillisCny < 2000)
+	{
+
+		val1 = analogRead(cny1);
+		val2 = analogRead(cny2);
+
+		auxSuma1 = auxSuma1 + val1;
+		auxSuma2 = auxSuma2 + val2;
+
+		auxConteo++;
+		currentMillisCny = millis();
+	}
+	lectura1 = auxSuma1 / auxConteo;
+	lectura2 = auxSuma2 / auxConteo;
+
+	if (lectura1 < 200 && lectura2 < 200)
+	{
+		// Tolva requiere llenado
+		return 0;
+	}
+	else if (lectura1 > 200 && lectura2 > 200)
+	{
+		// Tolva llena
+		return 1;
+	}
+	else if (lectura1 > 200 && lectura2 < 200)
+	{
+		// Tolva no requiere llenado
+		return 2;
+	}
+	else
+	{
+		// Error
+		return 3;
+	}
+	previousMillisCny = currentMillisCny;
+}
+
+/*const int servoPin = 9;
+
+void setup() {
+  Serial.begin(9600);
+  pinMode(servoPin, OUTPUT);
+}
+
+
+void loop() {
+  if (Serial.available()) {
+	int command = Serial.parseInt();
+
+	if (command == 1) {
+	  abrirCompuerta(); // Llamamos a la función para abrir la compuerta
+	} else if (command == 2) {
+	  cerrarCompuerta(); // Llamamos a la función para cerrar la compuerta
+	}
+  }
+}
+#include <Servo.h>
+
+Servo myServo;
+
+void abrirCompuerta() {
+  myServo.attach(servoPin);
+  myServo.write(360); // Ángulo de 180 grados para abrir la compuerta
+  delay(1200);
+  myServo.detach();
+}
+
+void cerrarCompuerta() {
+  myServo.attach(servoPin);
+  myServo.write(360); // Ángulo de 0 grados para cerrar la compuerta
+  delay(297);
+  myServo.detach();
+}*/
+/*
+int relePin = 9;  // Pin de salida del relé
+int pot = 1024/4;
+int pwm = 0;
+*/
+static int velActual = 0;
+
+static int servo = 8;
+
+void setupServomotor()
+{
+	Serial.begin(9600);
+	pinMode(servo, OUTPUT); // Configurar el pin del relé como salida
+
+	digitalWrite(servo, LOW);
+	/*
+	delay(1000);
+	for(int i=0; i<40; i++){
+	  digitalWrite(servo, HIGH);
+	  delay(1.55);
+	  digitalWrite(servo, LOW);
+	  delay(18.45);
+	}
+	*/
+}
+
+void loop2()
+{
+	/*
+	  digitalWrite(relePin, HIGH);  // Encender el relé (activar el motor)
+	  delay(2000);  // Esperar 2 segundos
+	  digitalWrite(relePin, LOW);   // Apagar el relé (detener el motor)
+	  delay(2000);  // Esperar 2 segundos
+	*/
+	if (Serial.available())
+	{
+		int command = Serial.parseInt();
+		if (command > 0 && command < 6)
+		{
+			angulo(command);
+			velActual = command;
+		}
+		else if (command == 6)
+		{
+			retornarCerrado(velActual);
+		}
+	} /*
+
+	 pwm = map(pot, 0, 1023, 0, 255);
+	 analogWrite(servo, pwm);
+
+	 delay(30);
+   */
+}
+
+void angulo(int vel)
+{
+	for (int _ = 0; _ < vel; _++)
+	{
+		for (int i = 0; i < 2; i++)
+		{
+			// analogWrite(servo, 127);
+			digitalWrite(servo, HIGH);
+			delay(1);
+			digitalWrite(servo, LOW);
+			delay(19);
+		}
+		delay(250);
+	}
+}
+
+void retornarCerrado(int vel)
+{
+	if (vel == 1)
+	{
+		for (int i = 0; i < 2; i++)
+		{
+			/*
+			analogWrite(servo, 255);
+			delay(0.1);
+			*/
+			digitalWrite(servo, HIGH);
+			delay(2);
+			digitalWrite(servo, LOW);
+			delay(18);
+		}
+		delay(250);
+	}
+	else
+	{
+		for (int _ = 0; _ < vel; _++)
+		{
+			for (int i = 0; i < 2; i++)
+			{
+				/*
+				analogWrite(servo, 255);
+				delay(0.1);
+				*/
+				digitalWrite(servo, HIGH);
+				delay(2);
+				digitalWrite(servo, LOW);
+				delay(18);
+			}
+			delay(250);
+		}
+	}
 }

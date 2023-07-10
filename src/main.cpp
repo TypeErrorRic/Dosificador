@@ -19,7 +19,7 @@ void setup()
   setLCD();
   // Configuracion Base del Sistema:
   // Inicialización de pines:
-  pinMode(PORTCONMUT, INPUT);        // Pin del conmutador.
+  pinMode(PORTCONMUT, INPUT_PULLUP);        // Pin del conmutador.
   pinMode(PIN_ENVASADO, INPUT);      // Pin del sistema de envasado.
   pinMode(PIN_SENSOR_TOLVA, INPUT);  // Pin del sistema de envasado.
   pinMode(PIN_CICLO_LLENADO, INPUT); // Pin del sistema de ciclo de envasado.
@@ -27,6 +27,8 @@ void setup()
   RevisionSensoresInit(); // Revisar sensores.
   initRegresionCuadratica();
   initAlarma();
+  setupCny();
+  setupServomotor();
   // Mensaje de finalización de configuración.
 }
 
@@ -42,18 +44,14 @@ void loop()
   case 0:
     while (1)
       flujo_ejecucion_programa(stateTolva, fillTolva, offTolva, revisarEnvase,
-        revisarLLenado, llenandoEnvase, stopLllenadoEnvase, alarma);
+        revisarLLenado, llenandoEnvase, stopLllenadoEnvase, alarma, MostrarPantalla, Captura_dato);
     break;
   case 1:
-    escribirLcd<String>("Realizando", 0, 0, true);
-    escribirLcd<String>("Reg Cuadratica.", 1, 0);
-    doRegresionCuadratica();
+    //Configuración sistema:
+    ConfigSistem();
     break;
   case 2:
     EjecucionMemoria();
-    break;
-  case 3:
-    doDerivada();
     break;
   default:
     break;

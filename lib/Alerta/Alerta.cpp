@@ -1,12 +1,18 @@
 #include <Alerta.h>
 #include <Config.h>
 #include <EnableInterrupt.h>
+#include <Memoria.h>
 
 // CÓDIGO DEL FUNCIONAMIENTO DEL SISTEMA DE ALARMAS:
 static unsigned long time_Alerta = 0;
 static unsigned long time_Visual = 0;
 
 bool CambiarPantalla = 0;
+
+//Variables de Salir del Menudo:
+static bool SalirMenudo = true;
+static unsigned short contadorSalir = 0;
+
 
 // Declaración de clase:
 Alerta Alertas(PIN_ALERTA);
@@ -20,7 +26,14 @@ void setupInteruptMassage()
 void isr_handler()
 {
     mostrarMensaje = !mostrarMensaje;
-    digitalWrite(PIN_ALERTA, LOW);
+    if(Estado ==  5)
+    {
+        if(contadorSalir == 3)
+        {
+            SalirMenudo = false;
+        }
+        contadorSalir++;
+    }
 }
 
 void Alerta::S0() // mensaje de estado s1, esperando accionamineto conmutador
@@ -45,7 +58,6 @@ void Alerta::S0() // mensaje de estado s1, esperando accionamineto conmutador
         }
         time_Visual = millis();
     }
-    digitalWrite(PIN_ALERTA, LOW);
 }
 
 void Alerta::S1() // mensaje de alerta de envase en la salida
@@ -88,41 +100,34 @@ void Alerta::S2() // alerta identificacion del tipo de envase
 
 void Alerta::S3() // alerta de nivel de tolva
 {
-    if (DELAY_TIME_VISUALIZACION < (millis() - time_Visual))
+    if (Cambio)
     {
-        if (Cambio)
+        escribirLcd<String>("Comprobando ", 0, 0, true);
+        escribirLcd<String>("Nivel tolva.", 1, 0);
+        delay(2000);
+        Cambio = false;
+    }
+    else
+    {
+        if ((*REGENTRADAS & 0x02) & ~(1 << 2)) // nivel bajo o vacio tolva
         {
-            escribirLcd<String>("Comprobando ", 0, 0, true);
-            escribirLcd<String>("nivel tolva.", 1, 0);
-            Cambio = false;
+            escribirLcd<String>("Nivel de tolva", 0, true);
+            escribirLcd<String>("Maximo.", 1, 0);
         }
         else
         {
-            if ((*REGENTRADAS & 0x02) & ~(1 << 2)) // nivel bajo o vacio tolva
-            {
-                escribirLcd<String>("Nivel de tolva", 0, true);
-                escribirLcd<String>("bajo.", 1, 0);
-            }
-            else
-            {
-                escribirLcd<String>("Nivel de tolva", 0, 0, true);
-                escribirLcd<String>("maximo.", 1, 0);
-            }
-            Cambio = true;
+            escribirLcd<String>("Nivel de tolva", 0, 0, true);
+            escribirLcd<String>("Bajo.", 1, 0);
         }
-        time_Visual = millis();
-    }
-    if ((*REGENTRADAS & 0x02) & ~(1 << 2) && (((unsigned int)DELAY_TIME_SONIDO / DIVISOR_S3) < (millis() - time_Alerta)))
-    {
-        digitalWrite(bozzer, !digitalRead(bozzer));
-        time_Alerta = millis();
+        Cambio = true;
+        delay(2000);
     }
 }
 
 void Alerta::S4() // alerta de alimentador encendido
 {
-    escribirLcd<String>("Alimentador", 2, 0);
-    escribirLcd<String>("encendido", 3, 1);
+    escribirLcd<String>("Alimentador", 0, 0, true);
+    escribirLcd<String>("encendido", 1, 0);
     if (((unsigned int)DELAY_TIME_SONIDO / DIVISOR_S4) < (millis() - time_Alerta))
     {
         digitalWrite(bozzer, !digitalRead(bozzer));
@@ -132,14 +137,13 @@ void Alerta::S4() // alerta de alimentador encendido
 
 void Alerta::S5() // Alerta de llenado de recipiente
 {
-    escribirLcd<String>("Llenando ", 4, 0, true);
-    escribirLcd<String>("recipiente", 3, 1);
+    escribirLcd<String>("Coloque un", 0, 0, true);
+    escribirLcd<String>("Envase", 1, 0);
 }
 
 void Alerta::S6() // Alerta de llenado terminado
 {
-    escribirLcd<String>("Recipiente ", 3, 0, true);
-    escribirLcd<String>("llenado", 4, 1);
+    escribirLcd<String>("Error", 0, 0, true);
     if (((unsigned int)DELAY_TIME_SONIDO / DIVISOR_S6) < (millis() - time_Alerta))
     {
         digitalWrite(bozzer, !digitalRead(bozzer));
@@ -151,9 +155,6 @@ void Alerta::Desactivar()
 {
     digitalWrite(bozzer, LOW);
 }
-
-/* - Código para LCD sin I2C */
-static LiquidCrystal_I2C lcd = getLcd();
 
 //// Variables auxiliares ////
 static short aux = 0;
@@ -167,14 +168,13 @@ static int del = 200; // Delay para evitar el ruido.
 
 //// Variables del sistema ////
 
-static unsigned short velocidadDeLlenado = 5;
-static unsigned short envasesLlenados = 0; // Esta variable cambiaría su valor con base al desarrollo que se presente en los demás bloques.
-static unsigned short gramosLlenados = 0;  // Esta variable cambiaría su valor con base al desarrollo que se presente en los demás bloques.
+unsigned short velocidadDeLlenado = 4;
 
 static int PESOSMAXIMOS[3] = {179, 282, 330}; // Pesos de los tres tipos de recipientes cuando están llenos.
 static int PESOSMINIMOS[3] = {31, 40, 50};    // Pesos de los tres tipos de recipientes cuando está con la cantidad mínima.
 
-static int pesos[3] = {179, 282, 330}; // Pesos del envase 1, 2 y 3 respectivamente (incluyendo el peso de la lata vacía).
+//Pesos de los envases:
+int pesos[3] = {179, 282, 330}; // Pesos del envase 1, 2 y 3 respectivamente (incluyendo el peso de la lata vacía).
                                        // NOTA: el peso 3 no se ha definido aún, por lo que por ahora se define (arbitrariamente) como 330.
 
 /* Variables de Menú */
@@ -200,17 +200,17 @@ static void titilarSeleccion(int seccion, int opcion, int reset)
         switch (seccion)
         {
         case 0:
-            lcd.clear();
-            lcd.setCursor(0, 0);
-            lcd.print(MENU[0]);
-            lcd.setCursor(0, 1);
-            lcd.print(MENU[1]);
+            Lcd.clear();
+            Lcd.setCursor(0, 0);
+            Lcd.print(MENU[0]);
+            Lcd.setCursor(0, 1);
+            Lcd.print(MENU[1]);
             mostrando = 1;
             break;
         case 1:
-            lcd.clear();
-            lcd.setCursor(0, 0);
-            lcd.print(MENU[2]);
+            Lcd.clear();
+            Lcd.setCursor(0, 0);
+            Lcd.print(MENU[2]);
             mostrando = 1;
             break;
         }
@@ -221,15 +221,15 @@ static void titilarSeleccion(int seccion, int opcion, int reset)
         switch (seccion)
         {
         case 0:
-            lcd.clear();
-            lcd.setCursor(0, !opcion);
-            lcd.print(MENU[!opcion]);
+            Lcd.clear();
+            Lcd.setCursor(0, !opcion);
+            Lcd.print(MENU[!opcion]);
 
             mostrando = 0;
             break;
 
         case 1:
-            lcd.clear();
+            Lcd.clear();
             mostrando = 0;
             break;
         }
@@ -240,9 +240,9 @@ static void titilarSeleccion(int seccion, int opcion, int reset)
 static void SeleccionDeVelocidad()
 {
     // El usuario selecciona entre las 5 velocidades de llenado.
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("Velocidad de");
+    Lcd.clear();
+    Lcd.setCursor(0, 0);
+    Lcd.print("Velocidad de");
     int vel_actual = velocidadDeLlenado;
     delay(del);
 
@@ -257,9 +257,9 @@ static void SeleccionDeVelocidad()
         {
             velocidadDeLlenado--;
         }
-        lcd.setCursor(0, 1);
+        Lcd.setCursor(0, 1);
         sprintf(auxCadena, "llenado: %d", velocidadDeLlenado);
-        lcd.print(auxCadena);
+        Lcd.print(auxCadena);
         delay(del);
 
         // Se confirma ó cancela el cambio.
@@ -286,13 +286,13 @@ static void CambiarPeso(int tipoDeEnvase)
     // Se configura el peso del tipo de envase seleccionado.
 
     aux = pesos[tipoDeEnvase - 1];
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("Seleccione el");
-    lcd.setCursor(0, 1);
-    lcd.print("nuevo peso: ");
-    lcd.setCursor(12, 1);
-    lcd.print(aux);
+    Lcd.clear();
+    Lcd.setCursor(0, 0);
+    Lcd.print("Seleccione el");
+    Lcd.setCursor(0, 1);
+    Lcd.print("nuevo peso: ");
+    Lcd.setCursor(12, 1);
+    Lcd.print(aux);
 
     while (1)
     {
@@ -309,11 +309,11 @@ static void CambiarPeso(int tipoDeEnvase)
             {
                 aux = aux + 10;
             }
-            lcd.setCursor(12, 1);
-            lcd.print("    ");
-            lcd.setCursor(12, 1);
-            lcd.print(aux);
-            lcd.setCursor(0, 0);
+            Lcd.setCursor(12, 1);
+            Lcd.print("    ");
+            Lcd.setCursor(12, 1);
+            Lcd.print(aux);
+            Lcd.setCursor(0, 0);
             delay(del);
         }
         else if (digitalRead(botonAbajo) == LOW && aux > PESOSMINIMOS[tipoDeEnvase - 1])
@@ -327,11 +327,11 @@ static void CambiarPeso(int tipoDeEnvase)
             {
                 aux = aux - 10;
             }
-            lcd.setCursor(12, 1);
-            lcd.print("    ");
-            lcd.setCursor(12, 1);
-            lcd.print(aux);
-            lcd.setCursor(0, 0);
+            Lcd.setCursor(12, 1);
+            Lcd.print("    ");
+            Lcd.setCursor(12, 1);
+            Lcd.print(aux);
+            Lcd.setCursor(0, 0);
             delay(del);
         }
 
@@ -346,16 +346,16 @@ static void CambiarPeso(int tipoDeEnvase)
         else if (digitalRead(botonSeleccionar) == LOW)
         {
             pesos[tipoDeEnvase - 1] = aux;
-            lcd.clear();
-            lcd.setCursor(0, 0);
-            lcd.print("Se ha cambiado");
-            lcd.setCursor(0, 1);
+            Lcd.clear();
+            Lcd.setCursor(0, 0);
+            Lcd.print("Se ha cambiado");
+            Lcd.setCursor(0, 1);
             sprintf(auxCadena, "el peso %d (%d)", tipoDeEnvase, pesos[tipoDeEnvase - 1]);
-            lcd.print(auxCadena);
+            Lcd.print(auxCadena);
             delay(3000);
-            lcd.clear();
+            Lcd.clear();
             aux = 0;
-            lcd.setCursor(0, 0);
+            Lcd.setCursor(0, 0);
             break;
         }
     }
@@ -367,15 +367,15 @@ static void configPesos()
 
     aux = 1;
 
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("Tipo de envase:");
+    Lcd.clear();
+    Lcd.setCursor(0, 0);
+    Lcd.print("Tipo de envase:");
 
     while (1)
     {
         delay(del);
-        lcd.setCursor(0, 1);
-        lcd.print(aux);
+        Lcd.setCursor(0, 1);
+        Lcd.print(aux);
 
         if (digitalRead(botonArriba) == LOW && aux != 3)
         {
@@ -407,12 +407,12 @@ static void Estadisticas()
     // Los muestra con un intervalo de 3 segundos entre sí.
     int aux = 0;
     delay(del);
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("Gramos");
-    lcd.setCursor(0, 1);
-    sprintf(auxCadena, "envasados: %d", gramosLlenados);
-    lcd.print(auxCadena);
+    Lcd.clear();
+    Lcd.setCursor(0, 0);
+    Lcd.print("Gramos");
+    Lcd.setCursor(0, 1);
+    sprintf(auxCadena, "envasados: %d", (int)*PESO[*NUM_CICLO_FINAL]);
+    Lcd.print(auxCadena);
 
     while (1)
     {
@@ -421,24 +421,24 @@ static void Estadisticas()
         {
             if (aux == 0)
             {
-                lcd.clear();
-                lcd.setCursor(0, 0);
-                lcd.print("Gramos");
-                lcd.setCursor(0, 1);
-                sprintf(auxCadena, "envasados: %d", gramosLlenados);
-                lcd.print(auxCadena);
+                Lcd.clear();
+                Lcd.setCursor(0, 0);
+                Lcd.print("Gramos");
+                Lcd.setCursor(0, 1);
+                sprintf(auxCadena, "envasados: %d", (int)*PESO[*NUM_CICLO_FINAL]);
+                Lcd.print(auxCadena);
 
                 aux = 1;
                 previousMillis = currentMillis;
             }
             else
             {
-                lcd.clear();
-                lcd.setCursor(0, 0);
-                lcd.print("Envases");
-                lcd.setCursor(0, 1);
-                sprintf(auxCadena, "llenados: %d", envasesLlenados);
-                lcd.print(auxCadena);
+                Lcd.clear();
+                Lcd.setCursor(0, 0);
+                Lcd.print("Envases");
+                Lcd.setCursor(0, 1);
+                sprintf(auxCadena, "llenados: %d", *NUM_ENVASES[*NUM_CICLO_FINAL]);
+                Lcd.print(auxCadena);
 
                 aux = 0;
                 previousMillis = currentMillis;
@@ -447,7 +447,7 @@ static void Estadisticas()
         // Se vuelve al menú inicial con los botones cancelar ó seleccionar.
         if (digitalRead(botonCancelar) == LOW || digitalRead(botonSeleccionar) == LOW)
         {
-            lcd.clear();
+            Lcd.clear();
             delay(del);
             break;
         }
@@ -525,9 +525,10 @@ void setupPantalla()
 
 void MostrarPantalla(bool isEnvasadoEnable)
 {
-    while (isEnvasadoEnable)
+    while (isEnvasadoEnable && SalirMenudo && CONMUTADOR)
     {
         MenuPrincipal();
     }
+    SalirMenudo = true;
     // ... ejecución del ciclo de envasado...
 }

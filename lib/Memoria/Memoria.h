@@ -226,6 +226,7 @@ extern Memoria<float, Sumar<float>> SCALE;
 // funciones de Limpieza:
 void LIMPIAR();
 void LIMPIAR_DEFAULT();
+void limpirSitioEnvasado();
 void Dirreciones();
 
 #endif

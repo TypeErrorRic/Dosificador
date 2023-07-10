@@ -77,4 +77,19 @@ void encenderMotor();
 
 void apagarMotor();
 
+/********************** CONFIGURACIÓN SISTEMA ********************/
+void ConfigSistem();
+
+/******************** SENSORES DE PROXIMIDAD *********************/
+void setupCny();
+int estadoCantidadTolva();
+
+/************************** SERVOMOTOR *************************/
+
+void retornarCerrado(int vel);
+
+void angulo(int vel);
+
+void setupServomotor();
+
 #endif
