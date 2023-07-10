@@ -90,12 +90,12 @@ typedef struct
 extern pvResultsMedicion Medidas;
 
 //Medidas de reconocimiento de los pesos de los envases:
-#define ENVASE_1_PESO 106
-#define ENVASE_2_PESO 148
-#define ENVASE_3_PESO 228
+#define ENVASE_1_PESO 26.70
+#define ENVASE_2_PESO 32.03
+#define ENVASE_3_PESO 39.60
 
 //Rango de redondeo de los valores:
-#define VALOR_DESFASE 20
+#define VALOR_DESFASE 2
 //Porcentaje de error admitido entre 2 medidas
 #define VALOR_ERROR   0.05
 //Porcentaje de error admitido entre 2 medidas cuando la última medida es mayor al umbral de que hay un envase.

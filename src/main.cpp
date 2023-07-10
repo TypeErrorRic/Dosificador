@@ -17,7 +17,6 @@ void setup()
   // Inicializar trasmición:
   Serial.begin(VELOCIDA_TX);
   setLCD();
-  /*
   // Configuracion Base del Sistema:
   // Inicialización de pines:
   pinMode(PORTCONMUT, INPUT);        // Pin del conmutador.
@@ -29,32 +28,13 @@ void setup()
   initRegresionCuadratica();
   initAlarma();
   // Mensaje de finalización de configuración.
-  */
-  Serial.println("Ready");
-  //initCeldad(100);
-  Serial.print("Factor: ");
-  Serial.println(*FACTOR_CELDADCARGA);
-  Serial.print("Scale: ");
-  Serial.println(*SCALE);
-  delay(2000);
 }
 
-short dato = 0;
-
-void loop()
-{
-  Serial.println(confirmarEnvase());
-  /*
-  reconocerEnvaseEnSitioEnvasado(dato);
-  escribirLcd<String>("Tipo de envase: ", 0,0, true);
-  escribirLcd<int>(dato, 1,0);
-  */
-}
 
 /**
  * @brief Bucle incial de ejecución.
  */
-/*
+
 void loop()
 {
   switch (Modo_Configuracion())
@@ -79,7 +59,6 @@ void loop()
     break;
   }
 }
-*/
 
 /**
  * @attention Cualquier inquietud informar al propietario del código.

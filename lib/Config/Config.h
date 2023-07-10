@@ -36,7 +36,7 @@ typedef struct
     unsigned char bit7:1; //N/A
 }regEntrada;
 
-#define REGENTRADAS             ((volatile unsigned char*)(RAMEND + 1)) 
+extern volatile unsigned char *REGENTRADAS;
 
 //Lectura de los valores del reg entrada:
 #define SENSAR_TOLVA            (((volatile regEntrada*)REGENTRADAS)->bit1)
@@ -188,6 +188,10 @@ const short getModoOperacion();
 //Función del manejo de Memoria:
 void Imprimir_dato();
 void EjecucionMemoria();
+
+////////// VARIABLES BANDERAS PARA EL FUNCIONAMIENTO DEL SISTEMA ////////// 
+
+extern bool Cambio;
 
 /**
 * @note Las funciones para el control del flujo de programa está desarrolladas en el

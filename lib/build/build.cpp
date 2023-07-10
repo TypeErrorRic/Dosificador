@@ -156,8 +156,16 @@ void offTolva()
 // Función que permite conocer el tipo de envase.
 bool revisarEnvase(short &Tipo)
 {
-	// Programa de reconocimiento de envase:
 	if (confirmarEnvase())
+	{
+		MRECONOCIMIENTO_ENVASE(1);
+	}
+	else
+	{
+		MRECONOCIMIENTO_ENVASE(0);
+	}
+	// Programa de reconocimiento de envase:
+	if (RECONOCIMIENTO_ENVASE)
 	{
 		//Reconoce el tipo de envase:
 		if (getEstado() == 5)
@@ -176,7 +184,10 @@ bool revisarEnvase(short &Tipo)
 			}
 		}
 		else
-			return true;
+		{
+			Serial.println("Hay un envase.");
+			return true;	
+		}
 	}
 	else
 	{
@@ -185,6 +196,8 @@ bool revisarEnvase(short &Tipo)
 			Serial.print("Se ha retirado");
 			MRECONOCIMIENTO_ENVASE(0);
 		}
+		else
+			Serial.println("No hay envase.");
 		return false;
 	}
 }
@@ -263,4 +276,5 @@ void alarma(short type, bool state)
 void initAlarma()
 {
 	setupPantalla();
+	setupInteruptMassage();
 }

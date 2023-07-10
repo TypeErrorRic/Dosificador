@@ -3,7 +3,12 @@
 
 /********************* IMPLEMENTACIÓN DE IMPRECIÓN EN LCD **************************/
 
+volatile unsigned char *REGENTRADAS = new unsigned char();
+
 volatile unsigned short mostrarMensaje = 0;
+
+//Variables para el cambio de la pantalla de la LCD:
+bool Cambio = true;
 
 LiquidCrystal_I2C  Lcd(0x27,16,2);
 
@@ -285,10 +290,12 @@ void Revision_variables(bool(*revisarTolva)(void), void(*llenarTolva)(void),
       NUM_ENVASES.Begin(*NUM_CICLO_FINAL);
       crash = true;
     }
+    Cambio = true;
     break;
   case 1: // Revisa si hay un envase en la zona de envasado.
     if(revisarEnvase(tipo)) {MRECONOCIMIENTO_ENVASE(1);}
     else {MRECONOCIMIENTO_ENVASE(0); MCICLO_LLENADO(0);}
+    Cambio = false;
     break;
   case 2: // Revisa si se ha quitado el envase de la zona de envasado.
     if(!revisarEnvase(tipo)) {MRECONOCIMIENTO_ENVASE(0); MCICLO_LLENADO(0);}
@@ -339,8 +346,12 @@ void flujo_ejecucion_programa(bool(*revisarTolva)(void), void(*llenarTolva)(void
   case 1: // ¿Hay un envase?
     if (CONMUTADOR)
     {
+      //Mostrar que se finalizo el mensaje:
+      escribirEstado(Estado, alerta, Alert);
+      //Reconocer a que estado se va:
       if (RECONOCIMIENTO_ENVASE) Estado = 2;
       else Estado = 3;
+      Cambio = true;
     }
     else Estado = 0;
     break;

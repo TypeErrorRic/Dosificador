@@ -314,8 +314,6 @@ bool confirmarEnvase()
     // Verificar si hay un envase o no:
     if (resultfinal >= CRITERIO_ENVASE)
         return true;
-    else
-        return false;
     return false;
 }
 

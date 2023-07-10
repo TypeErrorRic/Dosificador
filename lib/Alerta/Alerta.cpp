@@ -1,31 +1,26 @@
 #include <Alerta.h>
-#include <avr/io.h>
-#include <avr/interrupt.h>
+#include <Config.h>
+#include <EnableInterrupt.h>
 
 // CÓDIGO DEL FUNCIONAMIENTO DEL SISTEMA DE ALARMAS:
 static unsigned long time_Alerta = 0;
 static unsigned long time_Visual = 0;
-static bool Cambio = true;
+
+bool CambiarPantalla = 0;
+
 // Declaración de clase:
 Alerta Alertas(PIN_ALERTA);
 
 void setupInteruptMassage()
 {
-    //Configurar el puerto como entrada:
-    DDRD &= ~(1 << PB0); //Pin D53.
-    // Enabling INT0 interrupt
-    EIMSK |= (1 << INT0);
-    // Enabling INT0 is called at any logical change on INT0
-    EICRA |= (1 << ISC00);
-    sei();
+    pinMode(BUTTON_PIN, INPUT);
+    enableInterrupt(BUTTON_PIN, isr_handler, RISING);
 }
 
-ISR(INT0_vect)
+void isr_handler()
 {
-    if (PIND2)
-        mostrarMensaje = 0;
-    else
-        mostrarMensaje;
+    mostrarMensaje = !mostrarMensaje;
+    digitalWrite(PIN_ALERTA, LOW);
 }
 
 void Alerta::S0() // mensaje de estado s1, esperando accionamineto conmutador
@@ -50,16 +45,29 @@ void Alerta::S0() // mensaje de estado s1, esperando accionamineto conmutador
         }
         time_Visual = millis();
     }
+    digitalWrite(PIN_ALERTA, LOW);
 }
 
 void Alerta::S1() // mensaje de alerta de envase en la salida
 {
-    escribirLcd<String>("Hay una lata en", 0, 0, true);
-    escribirLcd<String>("La salida", 0, 1);
-    if (((unsigned long)DELAY_TIME_SONIDO / DIVISOR_S1) < (millis() - time_Alerta))
+    escribirLcd<String>("Identificando Si", 0, 0, true);
+    escribirLcd<String>("Hay una lata", 1, 0);
+    if (!Cambio)
     {
-        digitalWrite(bozzer, !digitalRead(bozzer));
-        time_Alerta = millis();
+        short aux = 0;
+        if (RECONOCIMIENTO_ENVASE)
+            escribirLcd<String>("Hay un envase", 0, 0, true);
+        else
+            escribirLcd<String>("No Hay un envase", 0, 0, true);
+        while (aux <= 6)
+        {
+            if (((unsigned long)DELAY_TIME_SONIDO / DIVISOR_S1) < (millis() - time_Alerta))
+            {
+                digitalWrite(bozzer, !digitalRead(bozzer));
+                time_Alerta = millis();
+                aux++;
+            }
+        }
     }
 }
 
@@ -67,46 +75,8 @@ void Alerta::S2() // alerta identificacion del tipo de envase
 {
     if (DELAY_TIME_VISUALIZACION < (millis() - time_Visual))
     {
-        if (Cambio)
-        {
-            escribirLcd<String>("Identificando", 0, 0, true);
-            escribirLcd<String>("tipo recipiente.", 0, 1);
-            Cambio = false;
-        }
-        else
-        {
-            if (*REGENTRADAS & ~(1 << 2)) // no hay Lata /*== 0000*/
-            {
-                escribirLcd<String>("No hay ", 0, 0, true);
-                escribirLcd<String>("recipiente", 0, 1);
-            }
-            else if ((*REGENTRADAS & 0x3C) == ((1 << 2) | (1 << 3) | (1 << 5))) // lata tipo 1
-            {
-                escribirLcd<String>("Recipiente tipo", 0, 0, true);
-                escribirLcd<String>("uno", 0, 1);
-            }
-            else if ((*REGENTRADAS & 0x3C) == ((1 << 2) | (1 << 3) | (1 << 4))) // lata tipo 2
-            {
-                escribirLcd<String>("Recipiente tipo", 0, 0, true);
-                escribirLcd<String>("dos", 0, 1);
-            }
-            else if ((*REGENTRADAS & 0x3C) == ((1 << 2) | (1 << 3) | (1 << 5) | (1 << 4))) // lata tipo 3
-            {
-                escribirLcd<String>("Recipiente tipo", 0, 0, true);
-                escribirLcd<String>("tres", 0, 1);
-            }
-            else if ((*REGENTRADAS & 0x0C) == ((1 << 2))) // falla en el sistema de deteccion de envase.
-            {
-                escribirLcd<String>("No se reconocio", 0, 0, true);
-                escribirLcd<String>("el recipiente", 0, 1);
-            }
-            else // fallo lectura sensores
-            {
-                escribirLcd<String>("Fallo en el", 3, 0, true);
-                escribirLcd<String>("sistema", 5, 1);
-            }
-            Cambio = true;
-        }
+        escribirLcd<String>("Retire", 0, 0, true);
+        escribirLcd<String>("El recipiente", 0, 0);
         time_Visual = millis();
     }
     if ((*REGENTRADAS & 0x0C) == ((1 << 2)) && ((unsigned int)DELAY_TIME_SONIDO / DIVISOR_S2_RECONOCE < (millis() - time_Alerta)))
@@ -142,7 +112,7 @@ void Alerta::S3() // alerta de nivel de tolva
         }
         time_Visual = millis();
     }
-    if((*REGENTRADAS & 0x02) & ~(1 << 2) && (((unsigned int)DELAY_TIME_SONIDO / DIVISOR_S3) < (millis() - time_Alerta)))
+    if ((*REGENTRADAS & 0x02) & ~(1 << 2) && (((unsigned int)DELAY_TIME_SONIDO / DIVISOR_S3) < (millis() - time_Alerta)))
     {
         digitalWrite(bozzer, !digitalRead(bozzer));
         time_Alerta = millis();
@@ -153,7 +123,7 @@ void Alerta::S4() // alerta de alimentador encendido
 {
     escribirLcd<String>("Alimentador", 2, 0);
     escribirLcd<String>("encendido", 3, 1);
-    if(((unsigned int)DELAY_TIME_SONIDO / DIVISOR_S4) < (millis() - time_Alerta))
+    if (((unsigned int)DELAY_TIME_SONIDO / DIVISOR_S4) < (millis() - time_Alerta))
     {
         digitalWrite(bozzer, !digitalRead(bozzer));
         time_Alerta = millis();
@@ -170,7 +140,7 @@ void Alerta::S6() // Alerta de llenado terminado
 {
     escribirLcd<String>("Recipiente ", 3, 0, true);
     escribirLcd<String>("llenado", 4, 1);
-     if(((unsigned int)DELAY_TIME_SONIDO / DIVISOR_S6) < (millis() - time_Alerta))
+    if (((unsigned int)DELAY_TIME_SONIDO / DIVISOR_S6) < (millis() - time_Alerta))
     {
         digitalWrite(bozzer, !digitalRead(bozzer));
         time_Alerta = millis();
